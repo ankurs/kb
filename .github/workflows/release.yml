@@ -1,0 +1,29 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go test ./... && go vet ./...
+      - name: Build macOS and Linux archives
+        shell: bash
+        run: |
+          mkdir -p release
+          for target in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64; do
+            os=${target%/*}; arch=${target#*/}
+            GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o release/kb ./cmd/kb
+            tar -C release -czf "release/kb_${GITHUB_REF_NAME}_${os}_${arch}.tar.gz" kb
+          done
+          (cd release && sha256sum *.tar.gz > checksums.txt)
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/*.tar.gz release/checksums.txt --generate-notes

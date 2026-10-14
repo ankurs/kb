@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Go (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Formatting
+        run: test -z "$(gofmt -l $(git ls-files '*.go'))"
+      - name: Dependencies
+        run: go mod verify
+      - name: Static analysis
+        run: go vet ./...
+      - name: Tests
+        run: go test -race -cover ./...
+      - name: Build
+        run: go build -o "${RUNNER_TEMP}/kb" ./cmd/kb
+      - name: CLI smoke test
+        run: |
+          "${RUNNER_TEMP}/kb" --workspace testdata/sample check
+          "${RUNNER_TEMP}/kb" --workspace testdata/sample find --scope tool-library "seven calendar days"
+          "${RUNNER_TEMP}/kb" --workspace testdata/sample sync --show
+          "${RUNNER_TEMP}/kb" --workspace testdata/sample build
+          "${RUNNER_TEMP}/kb" --workspace testdata/sample verify
+          "${RUNNER_TEMP}/kb" --workspace testdata/sample publish

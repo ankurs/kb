@@ -1,0 +1,22 @@
+version: 1
+id: tool-library
+name: Neighborhood Tool Library
+mounts:
+  - name: handbook
+    path: reference
+    fallback: .kb/snapshots/handbook.html
+navigation:
+  overrides:
+    tool-library: {title: Tool Library Pilot, order: 1}
+output:
+  site: .kb/site
+  bundles: .kb/snapshots
+publish:
+  dir: dist
+  wiki: wiki.html
+  names:
+    tool-library: borrowing-pilot.html
+sync:
+  command: >-
+    mkdir -p "$KB_WORKSPACE_ROOT/.kb/mirror" &&
+    cp -R "$KB_PUBLISH_DIR/." "$KB_WORKSPACE_ROOT/.kb/mirror/"

@@ -1,0 +1,184 @@
+:root {
+  color-scheme: dark;
+  --gh-canvas: #0d1117;
+  --gh-code-bg: #161b22;
+  --gh-text: #e6edf3;
+  --gh-heading: #f0f6fc;
+}
+
+body,
+.sidebar,
+.content,
+.markdown-section {
+  background-color: var(--gh-canvas);
+}
+
+.markdown-section pre,
+.markdown-section pre > code,
+.markdown-section code,
+.markdown-section tr:nth-child(2n) {
+  background-color: var(--gh-code-bg);
+}
+
+body,
+.markdown-section,
+.markdown-section p,
+.markdown-section li,
+.markdown-section td,
+.markdown-section pre > code,
+.markdown-section code {
+  color: var(--gh-text);
+}
+
+.markdown-section h1,
+.markdown-section h2,
+.markdown-section h3,
+.markdown-section h4,
+.markdown-section h5,
+.markdown-section h6,
+.markdown-section strong {
+  color: var(--gh-heading);
+}
+
+.sidebar ul li a {
+  color: var(--gh-text);
+}
+
+.sidebar-nav li.folder {
+  position: relative;
+  padding-left: 14px;
+  cursor: pointer;
+}
+
+.sidebar-nav li.folder::before {
+  content: "\25BE";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #6e7681;
+  font-size: 10px;
+  line-height: 2.2;
+  transition: transform .15s ease;
+}
+
+.sidebar-nav li.folder:not(.open)::before {
+  transform: rotate(-90deg);
+}
+
+.sidebar-nav li.folder > ul {
+  cursor: auto;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--gh-text);
+}
+
+.sidebar-nav > ul > li.folder {
+  border-top: 1px solid #30363d;
+  margin-top: 10px;
+  padding-top: 8px;
+  color: var(--gh-heading);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.sidebar-nav > ul > li.folder::before {
+  line-height: 2.8;
+}
+
+.sidebar-nav ul ul > li.folder {
+  color: #8b949e;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-top: 10px;
+}
+
+.sidebar-nav ul ul > li.folder::before {
+  line-height: 1.9;
+}
+
+.sidebar-nav ul ul {
+  border-left: 1px solid #30363d;
+  margin-left: 4px;
+  padding-left: 10px;
+}
+
+.sidebar-nav ul li a {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.markdown-section .token.comment,
+.markdown-section .token.prolog,
+.markdown-section .token.doctype,
+.markdown-section .token.cdata {
+  color: #8b949e;
+}
+
+.markdown-section .token.keyword,
+.markdown-section .token.control,
+.markdown-section .token.directive,
+.markdown-section .token.atrule,
+.markdown-section .token.important {
+  color: #ff7b72;
+}
+
+.markdown-section .token.string,
+.markdown-section .token.char,
+.markdown-section .token.attr-value,
+.markdown-section .token.regex {
+  color: #a5d6ff;
+}
+
+.markdown-section .token.number,
+.markdown-section .token.boolean,
+.markdown-section .token.constant,
+.markdown-section .token.property,
+.markdown-section .token.attr-name,
+.markdown-section .token.symbol {
+  color: #79c0ff;
+}
+
+.markdown-section .token.function {
+  color: #d2a8ff;
+}
+
+.markdown-section .token.class-name,
+.markdown-section .token.builtin,
+.markdown-section .token.variable {
+  color: #ffa657;
+}
+
+.markdown-section .token.tag,
+.markdown-section .token.selector {
+  color: #7ee787;
+}
+
+.markdown-section .token.operator,
+.markdown-section .token.punctuation,
+.markdown-section .token.entity,
+.markdown-section .token.url {
+  color: #c9d1d9;
+}
+
+.markdown-section .token.inserted {
+  color: #aff5b4;
+}
+
+.markdown-section .token.deleted {
+  color: #ffdcd7;
+}
+
+.markdown-section .mermaid {
+  background: transparent;
+  text-align: center;
+  margin: 1em 0;
+}
+
+.markdown-section .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}

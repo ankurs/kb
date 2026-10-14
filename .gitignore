@@ -1,0 +1,8 @@
+.DS_Store
+*.test
+coverage.out
+/kb
+/testdata/sample/.kb/
+/testdata/sample/.qmd/index.sqlite*
+/testdata/sample/.qmd/trusted.json
+/testdata/sample/dist/

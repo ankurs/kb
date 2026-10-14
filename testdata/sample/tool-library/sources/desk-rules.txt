@@ -1,0 +1,9 @@
+NEIGHBORHOOD TOOL LIBRARY — BORROWING DESK NOTICE
+Posted: 2026-09-11
+
+1. Record the tool identifier and checkout date on a borrowing slip.
+2. A tool is due seven calendar days after checkout.
+3. Write the due date on the slip and confirm it with the borrower.
+4. Check a returned tool back in at the originating desk.
+
+The notice does not specify reminder timing, cross-branch returns, renewals, or fees.

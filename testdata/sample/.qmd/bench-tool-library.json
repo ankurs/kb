@@ -1,0 +1,35 @@
+{
+  "description": "Synthetic retrieval checks for the thirty-day tool-library pilot",
+  "version": 1,
+  "collection": "wiki",
+  "queries": [
+    {
+      "id": "exact-seven-day-loan",
+      "query": "seven calendar days after checkout",
+      "type": "exact",
+      "expected_files": ["tool-library/kb/borrowing-policy.md"],
+      "expected_in_top_k": 5
+    },
+    {
+      "id": "semantic-reminder-timing",
+      "query": "when does a volunteer send the borrower a reminder",
+      "type": "semantic",
+      "expected_files": ["tool-library/kb/reminder-workflow.md"],
+      "expected_in_top_k": 5
+    },
+    {
+      "id": "semantic-branch-returns",
+      "query": "can I bring the borrowed tool back to a different branch",
+      "type": "semantic",
+      "expected_files": ["tool-library/kb/returns-and-exceptions.md"],
+      "expected_in_top_k": 5
+    },
+    {
+      "id": "exact-on-time-denominator",
+      "query": "35 of 37 matured loans returned on time",
+      "type": "exact",
+      "expected_files": ["tool-library/kb/pilot-metrics.md"],
+      "expected_in_top_k": 5
+    }
+  ]
+}
