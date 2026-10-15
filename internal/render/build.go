@@ -9,6 +9,7 @@ import (
 	"html"
 	"io/fs"
 	"mime"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -20,18 +21,27 @@ import (
 )
 
 type BundleData struct {
-	Title     string            `json:"title"`
-	Pages     map[string]string `json:"pages"`
-	Assets    map[string]string `json:"assets"`
-	Files     map[string]string `json:"files"`
-	Nav       *workspace.Node   `json:"nav"`
-	Mounts    []string          `json:"mounts,omitempty"`
-	TrustHTML bool              `json:"trustHTML"`
+	Title               string            `json:"title"`
+	Pages               map[string]string `json:"pages"`
+	Assets              map[string]string `json:"assets"`
+	Files               map[string]string `json:"files"`
+	Nav                 *workspace.Node   `json:"nav"`
+	Mounts              []string          `json:"mounts,omitempty"`
+	TrustHTML           bool              `json:"trustHTML"`
+	ExternalLinksNewTab bool              `json:"externalLinksNewTab"`
 }
 type Result struct {
 	Site     string
 	Bundles  []string
 	Warnings []string
+}
+
+func externalReference(target string) bool {
+	if strings.HasPrefix(target, "//") {
+		return true
+	}
+	u, err := url.Parse(target)
+	return err == nil && u.Scheme != ""
 }
 
 func writeChanged(path string, data []byte) error {
@@ -62,7 +72,7 @@ func writeChanged(path string, data []byte) error {
 	return os.Rename(tmp.Name(), path)
 }
 func pageData(inv *workspace.Inventory, filter func(string) bool, bundleDir string, includeFiles bool) (BundleData, error) {
-	out := BundleData{Title: inv.Config.Name, Pages: map[string]string{}, Assets: map[string]string{}, Files: map[string]string{}, Nav: inv.Nav(), TrustHTML: inv.Config.Render.TrustHTML}
+	out := BundleData{Title: inv.Config.Name, Pages: map[string]string{}, Assets: map[string]string{}, Files: map[string]string{}, Nav: inv.Nav(), TrustHTML: inv.Config.Render.TrustHTML, ExternalLinksNewTab: inv.Config.Render.OpenExternalLinksNewTab()}
 	for _, mount := range inv.Config.Mounts {
 		out.Mounts = append(out.Mounts, mount.Name)
 	}
@@ -73,6 +83,9 @@ func pageData(inv *workspace.Inventory, filter func(string) bool, bundleDir stri
 		p := inv.Pages[key]
 		out.Pages[key] = p.Markdown
 		for _, ref := range workspace.References(p.Markdown) {
+			if externalReference(ref.Target) {
+				continue
+			}
 			target, _, err := inv.Resolve(key, ref.Target)
 			if err != nil {
 				return out, err
@@ -305,6 +318,7 @@ func effectiveData(inv *workspace.Inventory, bundleDir string, filter func(strin
 		data.Nav = navFromPages(data.Pages, c)
 	}
 	data.TrustHTML = c.Render.TrustHTML
+	data.ExternalLinksNewTab = c.Render.OpenExternalLinksNewTab()
 	return data, warnings, nil
 }
 
@@ -331,7 +345,7 @@ func compileData(c config.Workspace, data BundleData, filter func(string) bool) 
 		}
 	}
 	for name := range groups {
-		focus := BundleData{Title: c.Name + " — " + name, Pages: map[string]string{}, Assets: map[string]string{}, Files: map[string]string{}, Nav: focusedNav(data.Nav, name), Mounts: data.Mounts, TrustHTML: c.Render.TrustHTML}
+		focus := BundleData{Title: c.Name + " — " + name, Pages: map[string]string{}, Assets: map[string]string{}, Files: map[string]string{}, Nav: focusedNav(data.Nav, name), Mounts: data.Mounts, TrustHTML: c.Render.TrustHTML, ExternalLinksNewTab: c.Render.OpenExternalLinksNewTab()}
 		for k, v := range data.Pages {
 			if strings.HasPrefix(k, name+"/") {
 				focus.Pages[k] = v
@@ -547,6 +561,9 @@ func siteFiles(inv *workspace.Inventory) (map[string][]byte, error) {
 		p := inv.Pages[key]
 		files[key] = []byte(p.Markdown)
 		for _, ref := range workspace.References(p.Markdown) {
+			if externalReference(ref.Target) {
+				continue
+			}
 			target, _, e := inv.Resolve(key, ref.Target)
 			if e != nil {
 				return nil, e

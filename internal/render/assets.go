@@ -24,10 +24,11 @@ func LiveHTML(c config.Workspace, live bool) string {
 		mounts = append(mounts, m.Name)
 	}
 	settings, _ := json.Marshal(struct {
-		Name      string   `json:"name"`
-		Mounts    []string `json:"mounts"`
-		TrustHTML bool     `json:"trustHTML"`
-	}{c.Name, mounts, c.Render.TrustHTML})
+		Name                string   `json:"name"`
+		Mounts              []string `json:"mounts"`
+		TrustHTML           bool     `json:"trustHTML"`
+		ExternalLinksNewTab bool     `json:"externalLinksNewTab"`
+	}{c.Name, mounts, c.Render.TrustHTML, c.Render.OpenExternalLinksNewTab()})
 	reload := ""
 	if live {
 		reload = `<script>let source=new EventSource('/_kb/events');source.onmessage=()=>location.reload()</script>`

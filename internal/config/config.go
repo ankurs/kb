@@ -49,8 +49,16 @@ type Check struct {
 	WarnMissing []string `yaml:"warn_missing"`
 }
 type Render struct {
-	TrustHTML bool `yaml:"trust_html"`
+	TrustHTML           bool  `yaml:"trust_html"`
+	ExternalLinksNewTab *bool `yaml:"external_links_new_tab"`
 }
+
+// OpenExternalLinksNewTab defaults to true even for programmatically created
+// workspaces that have not been loaded from YAML.
+func (r Render) OpenExternalLinksNewTab() bool {
+	return r.ExternalLinksNewTab == nil || *r.ExternalLinksNewTab
+}
+
 type Output struct {
 	Site    string `yaml:"site"`
 	Bundles string `yaml:"bundles"`

@@ -76,12 +76,15 @@ func TestBrowserViewerNavigationAndSearch(t *testing.T) {
   clearInterval(timer);
   let nav=document.getElementById('nav'),input=document.getElementById('filter');
   let active=nav.querySelector('[aria-current="page"]');
+  let initiallyClosed=nav.querySelectorAll('details').length===2 &&
+    nav.querySelectorAll('details[open]').length===1 &&
+    !nav.querySelector('a[data-path="beta/README.md"]').closest('details').open;
   let section=active.closest('details');section.open=false;kbViewerUI.setActive('alpha/README.md');
-  let expanded=section.open,customNav=!nav.classList.contains('app-nav')&&
+  let expanded=section.open,highlightedActive=active.classList.contains('kb-active'),customNav=!nav.classList.contains('app-nav')&&
     getComputedStyle(section.querySelector('ul')).display!=='none';
   input.value='clockwork';input.dispatchEvent(new Event('input',{bubbles:true}));
   let first=document.querySelector('#results .result');
-  let result={active:active.dataset.path,expanded:expanded,customNav:customNav,first:first?.dataset.path,
+  let result={active:active.dataset.path,initiallyClosed:initiallyClosed,expanded:expanded,highlightedActive:highlightedActive,customNav:customNav,first:first?.dataset.path,
     count:document.querySelector('#results .result-count')?.textContent,
     highlighted:!!document.querySelector('#results .result mark'),hiddenNav:nav.hidden};
   input.value='clockwork guide';input.dispatchEvent(new Event('input',{bubbles:true}));
@@ -98,10 +101,13 @@ func TestBrowserViewerNavigationAndSearch(t *testing.T) {
   result.sidebarClass=document.getElementById('kb-sidebar').className;
   input.value='clockwork';input.dispatchEvent(new Event('input',{bubbles:true}));
   document.querySelector('#results .result[data-path="beta/README.md"]').click();
+  input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));
   setTimeout(function(){
     let heading=document.querySelector('#article h1,.markdown-section h1');
     result.navigated=location.hash.includes('beta/README.md')&&
       nav.querySelector('[aria-current="page"]')?.dataset.path==='beta/README.md'&&
+      nav.querySelector('[aria-current="page"]')?.classList.contains('kb-active')&&
+      nav.querySelector('[aria-current="page"]')?.closest('details')?.open&&
       heading?.textContent.includes('General Notes');
     let out=document.createElement('output');out.id='probe-result';out.textContent=JSON.stringify(result);document.body.append(out)
   },200)
@@ -153,14 +159,14 @@ func TestBrowserViewerNavigationAndSearch(t *testing.T) {
 				t.Fatalf("viewer probe did not run (%d bytes)", len(dom))
 			}
 			var got struct {
-				Active, First, Count, MenuAttr, SidebarClass                                     string
-				Expanded, CustomNav, Highlighted, HiddenNav, Shortcut, Restored, Menu, Navigated bool
-				AllTerms                                                                         int
+				Active, First, Count, MenuAttr, SidebarClass                                                                         string
+				InitiallyClosed, Expanded, HighlightedActive, CustomNav, Highlighted, HiddenNav, Shortcut, Restored, Menu, Navigated bool
+				AllTerms                                                                                                             int
 			}
 			if err := json.Unmarshal([]byte(html.UnescapeString(match[1])), &got); err != nil {
 				t.Fatalf("probe %q: %v", match[1], err)
 			}
-			if got.Active != "alpha/README.md" || got.First != "alpha/README.md" || got.Count != "2 results" || got.AllTerms != 1 || !got.Expanded || !got.CustomNav || !got.Highlighted || !got.HiddenNav || !got.Shortcut || !got.Restored || !got.Menu || !got.Navigated {
+			if got.Active != "alpha/README.md" || got.First != "alpha/README.md" || got.Count != "2 results" || got.AllTerms != 1 || !got.InitiallyClosed || !got.Expanded || !got.HighlightedActive || !got.CustomNav || !got.Highlighted || !got.HiddenNav || !got.Shortcut || !got.Restored || !got.Menu || !got.Navigated {
 				t.Fatalf("viewer interaction: %+v", got)
 			}
 		})
@@ -186,6 +192,123 @@ func TestBrowserViewerNavigationAndSearch(t *testing.T) {
 	focusedDOM := dumpDOM(t, browser, "file://"+focusedFile+"#/alpha/README.md")
 	if !strings.Contains(focusedDOM, `<output id="focused-result">1:alpha/README.md</output>`) {
 		t.Fatal("focused bundle search included another folder")
+	}
+}
+
+func TestBrowserExternalLinksPreference(t *testing.T) {
+	browser := headlessBrowser(t)
+	for _, newTab := range []bool{true, false} {
+		name := "new-tab"
+		if !newTab {
+			name = "same-tab"
+		}
+		t.Run(name, func(t *testing.T) {
+			root := t.TempDir()
+			md := "# Home\n\n[External](https://example.org/path)\n\n" +
+				"[Protocol](//example.net/path)\n\n" +
+				"[Internal](other/README.md)\n\n" +
+				"[Mail](mailto:friend@example.org)\n\n" +
+				`<a href="https://example.com/raw">Raw external</a>` + "\n"
+			if err := os.WriteFile(filepath.Join(root, "README.md"), []byte(md), 0644); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.MkdirAll(filepath.Join(root, "other"), 0755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(root, "other", "README.md"), []byte("# Other\n"), 0644); err != nil {
+				t.Fatal(err)
+			}
+			c := config.Workspace{Root: root, Name: "Links", Output: config.Output{Site: ".kb/site", Bundles: ".kb/snapshots"}}
+			if !newTab {
+				c.Render.ExternalLinksNewTab = &newTab
+			}
+			build, err := Build(c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			probe := `<script>(function(){let attempts=0,timer=setInterval(function(){
+  let article=document.querySelector('#article,.markdown-section');
+  if(!article||!article.querySelector('a[href="https://example.org/path"]')){
+    if(++attempts>200){clearInterval(timer);let out=document.createElement('output');out.id='links-result';out.textContent='timeout';document.body.append(out)}
+    return
+  }
+  clearInterval(timer);
+  let labels=['External','Protocol','Raw external','Internal','Mail'];
+  let result={};labels.forEach(label=>{
+    let a=Array.from(article.querySelectorAll('a')).find(x=>x.textContent.trim()===label);
+    result[label]=a?{target:a.getAttribute('target')||'',rel:a.getAttribute('rel')||'',href:a.getAttribute('href')||''}:null
+  });
+  let out=document.createElement('output');out.id='links-result';out.textContent=JSON.stringify(result);document.body.append(out)
+},20)})();</script>`
+			inject := func(content string) string {
+				at := strings.LastIndex(content, "</body>")
+				if at < 0 {
+					t.Fatal("viewer has no closing body tag")
+				}
+				return content[:at] + probe + content[at:]
+			}
+			staticFiles := http.FileServer(http.Dir(build.Site))
+			static := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/" || r.URL.Path == "/index.html" {
+					w.Header().Set("Content-Type", "text/html")
+					w.Write([]byte(inject(LiveHTML(c, false))))
+					return
+				}
+				staticFiles.ServeHTTP(w, r)
+			}))
+			defer static.Close()
+			served := Handler(c)
+			live := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/" || r.URL.Path == "/index.html" {
+					w.Header().Set("Content-Type", "text/html")
+					w.Write([]byte(inject(LiveHTML(c, false))))
+					return
+				}
+				served.ServeHTTP(w, r)
+			}))
+			defer live.Close()
+			bundle, err := os.ReadFile(filepath.Join(root, ".kb", "snapshots", "wiki.html"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			bundlePath := filepath.Join(t.TempDir(), "wiki.html")
+			if err := os.WriteFile(bundlePath, []byte(inject(string(bundle))), 0644); err != nil {
+				t.Fatal(err)
+			}
+			for _, viewer := range []struct{ name, url string }{
+				{"bundle", "file://" + bundlePath + "#/README.md"},
+				{"serve", live.URL + "/#/README.md"},
+				{"site", static.URL + "/#/README.md"},
+			} {
+				t.Run(viewer.name, func(t *testing.T) {
+					dom := dumpDOM(t, browser, viewer.url)
+					match := regexp.MustCompile(`<output id="links-result">([^<]*)</output>`).FindStringSubmatch(dom)
+					if len(match) != 2 {
+						t.Fatalf("link probe did not run (%d bytes)", len(dom))
+					}
+					var got map[string]*struct{ Target, Rel, Href string }
+					if err := json.Unmarshal([]byte(html.UnescapeString(match[1])), &got); err != nil {
+						t.Fatal(err)
+					}
+					for _, label := range []string{"External", "Protocol", "Raw external"} {
+						a := got[label]
+						if a == nil {
+							t.Fatalf("%s missing: %+v", label, got)
+						}
+						if newTab {
+							if a.Target != "_blank" || !strings.Contains(" "+a.Rel+" ", " noopener ") || !strings.Contains(" "+a.Rel+" ", " noreferrer ") {
+								t.Fatalf("%s should open safely in a new tab: %+v", label, *a)
+							}
+						} else if a.Target != "" {
+							t.Fatalf("%s should open in the same tab: %+v", label, *a)
+						}
+					}
+					if got["Internal"] == nil || got["Internal"].Target != "" || got["Mail"] == nil {
+						t.Fatalf("internal or mail link modified: %+v", got)
+					}
+				})
+			}
+		})
 	}
 }
 

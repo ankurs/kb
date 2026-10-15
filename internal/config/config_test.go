@@ -138,3 +138,40 @@ func TestRenderTrustPrecedenceAndReadableSymlinks(t *testing.T) {
 		t.Fatal("wrote through snapshot symlink")
 	}
 }
+
+func TestExternalLinksNewTabPrecedence(t *testing.T) {
+	root := t.TempDir()
+	configPath := filepath.Join(root, "kb.yaml")
+	global := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(configPath, []byte("version: 1\nid: demo\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	c, err := Load(root, global)
+	if err != nil || !c.Render.OpenExternalLinksNewTab() {
+		t.Fatalf("default should open new tab: %+v, %v", c.Render, err)
+	}
+	if !((Render{}).OpenExternalLinksNewTab()) {
+		t.Fatal("programmatic workspace should use the same default")
+	}
+	if err := os.WriteFile(configPath, []byte("version: 1\nid: demo\nrender: {external_links_new_tab: false}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	c, err = Load(root, global)
+	if err != nil || c.Render.OpenExternalLinksNewTab() {
+		t.Fatalf("repository override should use current tab: %+v, %v", c.Render, err)
+	}
+	if err := os.WriteFile(global, []byte("defaults:\n  render: {external_links_new_tab: true}\nworkspaces:\n  demo:\n    render: {external_links_new_tab: false}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	c, err = Load(root, global)
+	if err != nil || c.Render.OpenExternalLinksNewTab() {
+		t.Fatalf("workspace-specific setting should win: %+v, %v", c.Render, err)
+	}
+	if err := os.WriteFile(global, []byte("defaults:\n  render: {external_links_new_tab: true}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	c, err = Load(root, global)
+	if err != nil || !c.Render.OpenExternalLinksNewTab() {
+		t.Fatalf("user defaults should override repository: %+v, %v", c.Render, err)
+	}
+}

@@ -112,7 +112,8 @@ site at `http://127.0.0.1:3000`.
 
 `kb serve` binds to `127.0.0.1` by default. Navigation comes from the Markdown
 tree; Docsify receives a virtual `_sidebar.md`, including on nested routes.
-Top-level sections are expanded by default. Section labels come from their
+Sidebar sections are closed by default, except the current page's ancestors.
+Section labels come from their
 `README.md` headings, repeated ancestor labels are shortened, and root pages
 follow links in the root README. `navigation.overrides` can set a title, order,
 or hide a path. The viewer uses locally bundled browser assets and does not
@@ -170,6 +171,7 @@ check:
   warn_missing: ['handbook/**']
 render:
   trust_html: false  # set true only for fully trusted authors
+  external_links_new_tab: true  # set false to open web links in this tab
 output:
   site: .kb/site
   bundles: .kb/snapshots
@@ -201,6 +203,11 @@ raw HTML in both viewers and permits linked active files; it must **not** be
 used for untrusted notes. SVG assets are still validated in trusted mode. This
 setting follows the normal repository → user-global precedence. Marked itself
 does not sanitize HTML; the bundled DOMPurify runtime does.
+HTTP(S) and protocol-relative links open in a new tab by default with
+`rel="noopener noreferrer"`; set `render.external_links_new_tab: false` to
+open them in the same tab. Internal wiki links are unaffected. This preference
+applies to served, static, and single-file viewers and follows normal config
+precedence.
 
 `exclude` replaces the default exclusion list when specified. `check.exclude`
 omits pages from validation while leaving them available for navigation and

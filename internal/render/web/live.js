@@ -26,6 +26,7 @@ window.$docsify={
     hook.afterEach(function(html){return trustHTML?html:DOMPurify.sanitize(html)});
     hook.doneEach(function(){
       window.kbViewerUI?.setActive();
+      KBUI.externalLinks(document.querySelector('.markdown-section'),config.externalLinksNewTab);
       mermaid.run({querySelector:'.mermaid'}).catch(console.error)
     })
   }]

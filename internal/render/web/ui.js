@@ -77,7 +77,7 @@ function start(data){
   }
   function branch(node){
     if(node.path)return link(node);
-    let li=document.createElement('li'),details=document.createElement('details');details.open=true;
+    let li=document.createElement('li'),details=document.createElement('details');
     let summary=document.createElement('summary');summary.textContent=node.name;
     let children=document.createElement('ul');(node.children||[]).forEach(child=>children.appendChild(branch(child)));
     details.append(summary,children);li.appendChild(details);return li
@@ -88,13 +88,19 @@ function start(data){
     let current=path||routePath()||((data.pages||{})['README.md']?'README.md':index[0]?.path);
     nav.querySelectorAll('a[data-path]').forEach(a=>{
       let active=a.dataset.path===current;a.classList.toggle('kb-active',active);
-      if(active){a.setAttribute('aria-current','page');for(let p=a.closest('details');p;p=p.parentElement?.closest('details'))p.open=true}
+      if(active){
+        a.setAttribute('aria-current','page');
+        for(let p=a.closest('details');p;p=p.parentElement?.closest('details'))p.open=true;
+        // Keep the selected page visible when navigation changes from another
+        // section, including after a search result click.
+        if(!nav.hidden&&getComputedStyle(sidebar).transform==='none')a.scrollIntoView({block:'nearest'})
+      }
       else a.removeAttribute('aria-current')
     })
   }
   function showResults(){
     let query=input.value.trim();
-    if(query.length<2){results.hidden=true;results.replaceChildren();nav.hidden=false;return}
+    if(query.length<2){results.hidden=true;results.replaceChildren();nav.hidden=false;setActive();return}
     let matches=search(index,query),count=document.createElement('p');count.className='result-count';
     count.textContent=matches.length?`${matches.length} result${matches.length===1?'':'s'}`:'No matches';
     let list=document.createElement('div');
@@ -120,5 +126,16 @@ function start(data){
   window.addEventListener('hashchange',()=>setActive());setActive();
   let api={setActive,showResults,search:q=>search(index,q)};global.kbViewerUI=api;return api
 }
-global.KBUI={start};
+function externalLinks(root,openInNewTab){
+  if(!root)return;
+  root.querySelectorAll('a[href]').forEach(a=>{
+    let href=a.getAttribute('href')||'';
+    if(!/^(?:https?:\/\/|\/\/)/i.test(href))return;
+    if(!openInNewTab){a.removeAttribute('target');return}
+    a.setAttribute('target','_blank');
+    let rel=new Set((a.getAttribute('rel')||'').split(/\s+/).filter(Boolean));
+    rel.add('noopener');rel.add('noreferrer');a.setAttribute('rel',[...rel].join(' '))
+  })
+}
+global.KBUI={start,externalLinks};
 })(window);
