@@ -58,6 +58,8 @@ continues without qmd. No qmd process starts during `kb build` or `kb publish`.
 An index can download models when you first use hybrid search; `kb index`
 prepares them in advance. `kb -v serve` shows whether qmd was enabled.
 
+![Live search with an illustrative qmd result in the fictional example wiki](../images/qmd-live-search.png)
+
 To let a coding agent use the same index, run qmd as an MCP server; see
 [Use with coding agents](coding-agents.md#give-the-agent-semantic-search-with-qmd).
 

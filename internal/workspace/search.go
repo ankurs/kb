@@ -29,13 +29,25 @@ func (q QMD) logf(format string, args ...any) {
 	}
 }
 
-func (q QMD) env() []string {
-	dir := q.ConfigDir
-	if dir == "" {
-		dir = ".qmd"
+// qmd discovers the project-local .qmd index from its working directory.
+// Global overrides must not redirect a kb command to another index or trust store.
+func qmdBaseEnv() []string {
+	env := make([]string, 0, len(os.Environ()))
+	for _, item := range os.Environ() {
+		if !strings.HasPrefix(item, "QMD_CONFIG_DIR=") && !strings.HasPrefix(item, "INDEX_PATH=") {
+			env = append(env, item)
+		}
 	}
-	// Do not inherit a global QMD_CONFIG_DIR that points at another index.
-	return append(os.Environ(), "QMD_CONFIG_DIR="+filepath.Join(q.Root, dir))
+	return env
+}
+
+func (q QMD) env() []string {
+	env := qmdBaseEnv()
+	if q.ConfigDir == "" || q.ConfigDir == ".qmd" {
+		return env
+	}
+	dir := filepath.Join(q.Root, q.ConfigDir)
+	return append(env, "QMD_CONFIG_DIR="+dir, "INDEX_PATH="+filepath.Join(dir, "index.sqlite"))
 }
 
 func (q QMD) projectConfig() (string, error) {
@@ -164,7 +176,7 @@ func (q QMD) trusted() error {
 	q.logf("qmd: checking configuration trust")
 	cmd := exec.Command("qmd", "trust", "list")
 	cmd.Dir = q.Root
-	cmd.Env = q.env()
+	cmd.Env = qmdBaseEnv()
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("qmd trust list: %w: %s", err, out)

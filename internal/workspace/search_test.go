@@ -77,8 +77,8 @@ func TestDefaultProjectConfigNeedsNoTrust(t *testing.T) {
 	}
 	t.Setenv("PATH", filepath.Dir(bin)+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("QMD_CONFIG_DIR", filepath.Join(t.TempDir(), "unrelated-index"))
-	if got := (QMD{Root: root, ConfigDir: ".qmd"}).CommandEnv(); !strings.Contains(strings.Join(got, "\n"), "QMD_CONFIG_DIR="+dir) {
-		t.Fatalf("project index not selected: %q", got)
+	if got := (QMD{Root: root, ConfigDir: ".qmd"}).CommandEnv(); strings.Contains(strings.Join(got, "\n"), "QMD_CONFIG_DIR=") || strings.Contains(strings.Join(got, "\n"), "INDEX_PATH=") {
+		t.Fatalf("default local index must use qmd discovery: %q", got)
 	}
 	if issues := Doctor(root, ".qmd"); len(issues) != 0 {
 		t.Fatalf("issues=%q", issues)
@@ -163,5 +163,33 @@ func TestQMDUnknownScopeAndEmptyResult(t *testing.T) {
 	}
 	if _, err := q.Search("question", "notes"); err == nil || !strings.Contains(err.Error(), "no results") {
 		t.Fatalf("empty output error: %v", err)
+	}
+}
+
+func TestQMDTrustUsesGlobalStoreForLocalIndex(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, ".qmd")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	configPath := filepath.Join(dir, "index.yml")
+	if err := os.WriteFile(configPath, []byte("collections:\n  wiki:\n    path: .\nmodels:\n  embed: hf:example/custom.gguf\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	bin := filepath.Join(t.TempDir(), "qmd")
+	script := "#!/bin/sh\nif [ \"$1\" = trust ]; then\n  if [ -n \"$QMD_CONFIG_DIR\" ]; then echo 'No trusted project configs.'; else echo '" + configPath + " (trusted now)'; fi\nelse\n  printf 'config=%s index=%s args=%s\\n' \"$QMD_CONFIG_DIR\" \"$INDEX_PATH\" \"$*\"\nfi\n"
+	if err := os.WriteFile(bin, []byte(script), 0755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", filepath.Dir(bin)+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("QMD_CONFIG_DIR", filepath.Join(t.TempDir(), "wrong-config"))
+	t.Setenv("INDEX_PATH", filepath.Join(t.TempDir(), "wrong-index.sqlite"))
+	q := QMD{Root: root, ConfigDir: ".qmd"}
+	out, err := q.Search("policy", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "config= index= args=query policy") {
+		t.Fatalf("project-local search used an override: %s", out)
 	}
 }

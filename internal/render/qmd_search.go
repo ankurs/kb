@@ -51,7 +51,13 @@ func startQMD(ctx context.Context, c config.Workspace) (*qmdSearch, func(), erro
 	port := listener.Addr().(*net.TCPAddr).Port
 	listener.Close()
 	childCtx, cancel := context.WithCancel(ctx)
-	cmd := exec.CommandContext(childCtx, "qmd", "mcp", "--http", "--host", "127.0.0.1", "--port", fmt.Sprint(port))
+	args := []string{"mcp", "--http", "--host", "127.0.0.1", "--port", fmt.Sprint(port)}
+	if c.Search.QMDConfig != "" && c.Search.QMDConfig != ".qmd" {
+		// Custom config directories are not discovered as project-local by
+		// qmd. Use that directory and its paired SQLite index explicitly.
+		args = append([]string{"--index", "index"}, args...)
+	}
+	cmd := exec.CommandContext(childCtx, "qmd", args...)
 	cmd.Dir = c.Root
 	cmd.Env = q.CommandEnv()
 	// A file-backed stderr avoids a pipe held open by qmd's model workers
