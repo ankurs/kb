@@ -84,6 +84,9 @@ All three viewers share a top bar, responsive collapsible navigation, active
 page highlighting, and ranked search over page titles and content. Press
 Cmd/Ctrl+K to search and Escape to return to the navigation. This browser
 search works offline and is separate from optional qmd retrieval.
+On narrow screens, the menu button opens the sidebar and moves focus to search;
+Escape closes it and returns focus to the button. Offscreen navigation is
+removed from keyboard focus order, and search caps the list at 40 results.
 
 ## Try a complete workflow
 

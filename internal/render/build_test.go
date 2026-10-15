@@ -248,6 +248,13 @@ func TestLiveThemeParity(t *testing.T) {
 	if err != nil || !bytes.Equal(staticCSS, uiCSS.Body.Bytes()) {
 		t.Fatalf("shared UI CSS differs between site and server: %v", err)
 	}
+	if !bytes.Contains(staticCSS, []byte("body.kb-live .markdown-section{max-width:1200px;")) {
+		t.Fatal("served and static Markdown content width is too narrow")
+	}
+	bundle, err := os.ReadFile(filepath.Join(c.Root, c.Output.Bundles, "wiki.html"))
+	if err != nil || !bytes.Contains(bundle, []byte("body.kb-bundle #article{max-width:1200px;")) {
+		t.Fatalf("offline bundle content width differs: %v", err)
+	}
 }
 
 func TestVerifyWholeSite(t *testing.T) {

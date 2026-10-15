@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"html"
 	"net/http"
 	"net/http/httptest"
@@ -377,10 +378,17 @@ func TestBrowserMountAndFallbackSearch(t *testing.T) {
 }
 
 func dumpDOM(t *testing.T, browser, url string) string {
+	return dumpDOMWithSize(t, browser, url, 0, 0)
+}
+
+func dumpDOMWithSize(t *testing.T, browser, url string, width, height int) string {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
 	args := []string{"--headless", "--disable-gpu", "--no-sandbox", "--disable-background-networking", "--disable-extensions", "--no-first-run", "--no-default-browser-check", "--user-data-dir=" + t.TempDir(), "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1", "--virtual-time-budget=5000", "--dump-dom", url}
+	if width > 0 && height > 0 {
+		args = append(args[:len(args)-1], fmt.Sprintf("--window-size=%d,%d", width, height), "--force-device-scale-factor=1", url)
+	}
 	cmd := exec.CommandContext(ctx, browser, args...)
 	b, err := cmd.Output()
 	if ctx.Err() != nil {

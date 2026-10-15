@@ -14,6 +14,7 @@ body.kb-viewer{margin:0;background:var(--kb-bg);color:var(--kb-text);font:16px/1
 #nav a{color:var(--kb-text);text-decoration:none;display:block;padding:3px 8px;border-radius:6px;font-size:14px}
 #nav a:hover,#results .result:hover{background:var(--kb-panel)}
 #nav a.kb-active{background:var(--kb-active);color:var(--kb-heading);font-weight:600}
+#topbar :focus-visible,#kb-sidebar :focus-visible{outline:2px solid var(--kb-link);outline-offset:2px}
 #nav details{margin:2px 0}#nav summary{cursor:pointer;color:var(--kb-muted);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;list-style:none}
 #nav summary::-webkit-details-marker{display:none}#nav summary::before{content:'\25B8  '}#nav details[open]>summary::before{content:'\25BE  '}
 #results .result-count{color:var(--kb-muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;margin:2px 4px 8px}
@@ -22,16 +23,17 @@ body.kb-viewer{margin:0;background:var(--kb-bg);color:var(--kb-text);font:16px/1
 #results .result-snippet{display:block;color:var(--kb-muted);font-size:14px;line-height:1.5}
 #kb-sidebar mark{background:#bb800933;color:#f2cc60;border-radius:3px;padding:0 2px}
 body.kb-bundle #viewer-main{margin-left:300px;margin-top:48px;padding:24px 32px 96px}
-body.kb-bundle #article{max-width:960px;margin:0 auto}
+body.kb-bundle #article{max-width:1200px;margin:0 auto}
 body.kb-live .sidebar{display:none!important}
 body.kb-live .content{left:0!important;margin-left:300px;padding-top:48px;background:var(--kb-bg)}
-body.kb-live .markdown-section{max-width:960px;margin:0 auto;padding:24px 32px 96px}
+body.kb-live .markdown-section{max-width:1200px;margin:0 auto;padding:24px 32px 96px}
 body.kb-live .markdown-section a{color:var(--kb-link)}
 @media(max-width:800px){
  #menu-toggle{display:inline-block}
- #kb-sidebar{transform:translateX(-100%);transition:transform .2s ease;box-shadow:0 0 24px #0008}
+ #kb-sidebar{width:min(300px,100vw);transform:translateX(-100%);transition:transform .2s ease;box-shadow:0 0 24px #0008}
  #kb-sidebar.open{transform:none}
  body.kb-bundle #viewer-main{margin-left:0;padding:20px 16px 96px}
  body.kb-live .content{margin-left:0}
  body.kb-live .markdown-section{padding:20px 16px 96px}
 }
+@media(prefers-reduced-motion:reduce){#kb-sidebar{transition:none}}
