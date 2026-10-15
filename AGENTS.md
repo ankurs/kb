@@ -21,7 +21,7 @@ Add focused regression tests for link resolution, mounts, security checks, publi
 
 ## Commit & Pull Request Guidelines
 
-No fixed commit-message convention exists. Use a concise imperative subject. **Never commit or push until the user has reviewed the diff and explicitly approved it.** **Never commit or push directly to `main`; work on a feature branch and merge through a pull request.** In pull requests, explain behavior and risk, note relevant issues and tests, and include screenshots for visible viewer changes.
+No fixed commit-message convention exists. Use a concise imperative subject. **Never commit or push directly to `main`.** Committing and pushing to a feature branch is fine without asking; changes reach `main` only through a reviewed pull request. In pull requests, explain behavior and risk, note relevant issues and tests, and include screenshots for visible viewer changes.
 
 ## Security & Configuration
 
