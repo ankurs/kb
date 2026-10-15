@@ -42,6 +42,7 @@ The remaining settings use built-in defaults, including the local-only server,
 | Keyword and hybrid retrieval | [qmd collections](.qmd/index.yml) and [retrieval checks](.qmd/bench-tool-library.json) | `kb find --scope tool-library "seven calendar days"`; `kb search --scope wiki "reminder timing"` after indexing |
 | Rendered Mermaid and code | [Reminder flow and YAML](tool-library/kb/reminder-workflow.md#flow), [metrics JSON](tool-library/kb/pilot-metrics.md#aggregate-record-example), and [shift handoff](handbook/shifts/README.md#handoff-flow) | `kb serve --port 3001` |
 | Local image | [Check-in SVG](handbook/check-in/check-in-flow.svg) | `kb build`; open `.kb/snapshots/wiki.html` offline |
+| Editable diagram preview | [Excalidraw check-in steps](handbook/check-in/README.md) and its [scene file](handbook/check-in/check-in-steps.excalidraw) | `kb check`; `kb publish` embeds the PNG sidecar |
 | Mounted reference notes | [Volunteer Handbook](handbook/README.md), sourced from `reference/` | `kb serve`; `kb search --scope handbook "check in a tool"` |
 | Source links and metrics | [Ledger CSV](tool-library/sources/loans-2026-10-10.csv) → [metrics page](tool-library/kb/pilot-metrics.md) | `kb check`; `kb publish` |
 | Independent commands | [Local output configuration](kb.yaml) | `kb build`; `kb publish`; `kb sync --show`; `kb sync` |

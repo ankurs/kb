@@ -99,6 +99,11 @@ func (i *Inventory) Check() []Issue {
 				continue
 			}
 			if info, e := os.Stat(file); e == nil && info.Mode().IsRegular() {
+				if ExcalidrawPreviewKey(ref, resolved) != "" {
+					if _, err := i.ExcalidrawPreview(resolved); err != nil {
+						issues = append(issues, Issue{key, ref.Line, err.Error(), false})
+					}
+				}
 				if !i.Config.Render.TrustHTML {
 					active, e := ActiveLinkedFile(file)
 					if e != nil {

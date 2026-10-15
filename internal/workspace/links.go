@@ -1,10 +1,23 @@
 package workspace
 
-import "strings"
+import (
+	"path/filepath"
+	"strings"
+)
 
 type Reference struct {
 	Target string
 	Line   int
+	Image  bool
+}
+
+// ExcalidrawPreviewKey is the PNG sidecar of an image link to an editable
+// Excalidraw scene. Ordinary links to the scene remain links to its source.
+func ExcalidrawPreviewKey(ref Reference, key string) string {
+	if ref.Image && strings.EqualFold(filepath.Ext(key), ".excalidraw") {
+		return key + ".png"
+	}
+	return ""
 }
 
 // References finds inline Markdown links outside fenced code, including
@@ -67,10 +80,40 @@ func References(md string) []Reference {
 				}
 			}
 			if target != "" {
-				out = append(out, Reference{target, n + 1})
+				image := imageLabel(line, start-2)
+				out = append(out, Reference{Target: target, Line: n + 1, Image: image})
 			}
 			at = end + 1
 		}
 	}
 	return out
+}
+
+// imageLabel walks from the closing bracket to its matching opener, rather
+// than mistaking an inner bracket in alt text for the start of the image.
+func imageLabel(line string, close int) bool {
+	depth := 1
+	for i := close - 1; i >= 0; i-- {
+		if escapedBracket(line, i) {
+			continue
+		}
+		switch line[i] {
+		case ']':
+			depth++
+		case '[':
+			depth--
+			if depth == 0 {
+				return i > 0 && line[i-1] == '!' && !escapedBracket(line, i-1)
+			}
+		}
+	}
+	return false
+}
+
+func escapedBracket(line string, i int) bool {
+	slashes := 0
+	for i--; i >= 0 && line[i] == '\\'; i-- {
+		slashes++
+	}
+	return slashes%2 != 0
 }

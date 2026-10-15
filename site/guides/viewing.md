@@ -78,3 +78,22 @@ active-page highlighting, ranked search over titles and content (Cmd/Ctrl+K,
 Escape to return), Mermaid diagrams, and syntax highlighting for common
 languages. Web links open in a new tab unless
 `render.external_links_new_tab: false`.
+
+## Excalidraw drawings
+
+Export a PNG from Excalidraw and save it alongside the editable scene. For
+`diagrams/flow.excalidraw`, name the preview
+`diagrams/flow.excalidraw.png`, then write:
+
+```markdown
+![Flow](diagrams/flow.excalidraw)
+[Edit drawing](diagrams/flow.excalidraw)
+```
+
+The image reference displays the PNG in the live, static, and single-file
+viewers. `kb check` and builds fully decode the sidecar and fail if it is
+missing, corrupt, over 20 MiB, over 32 million pixels, or outside the
+workspace. Re-export the PNG after editing the scene; `kb` does not
+render `.excalidraw` JSON itself. The source link remains available in the live
+and static views; HTML-only `kb publish` embeds the preview, not the editable
+scene. A plain link to `.excalidraw` does not require a preview.

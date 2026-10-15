@@ -107,6 +107,23 @@ func pageData(inv *workspace.Inventory, filter func(string) bool, bundleDir stri
 			if err := checkActiveResource(inv.Config, source, target); err != nil {
 				return out, err
 			}
+			if workspace.ExcalidrawPreviewKey(ref, target) != "" {
+				preview, err := inv.ExcalidrawPreview(target)
+				if err != nil {
+					return out, err
+				}
+				b, err := os.ReadFile(preview)
+				if err != nil {
+					return out, err
+				}
+				out.Assets[target] = "data:image/png;base64," + base64.StdEncoding.EncodeToString(b)
+				if includeFiles {
+					if rel, err := filepath.Rel(bundleDir, source); err == nil {
+						out.Files[target] = filepath.ToSlash(rel)
+					}
+				}
+				continue
+			}
 			ext := strings.ToLower(filepath.Ext(source))
 			switch ext {
 			case ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp":
@@ -584,6 +601,17 @@ func siteFiles(inv *workspace.Inventory) (map[string][]byte, error) {
 			}
 			if e := checkActiveResource(c, src, target); e != nil {
 				return nil, e
+			}
+			if previewKey := workspace.ExcalidrawPreviewKey(ref, target); previewKey != "" {
+				preview, e := inv.ExcalidrawPreview(target)
+				if e != nil {
+					return nil, e
+				}
+				b, e := os.ReadFile(preview)
+				if e != nil {
+					return nil, e
+				}
+				files[previewKey] = b
 			}
 			b, e := os.ReadFile(src)
 			if e != nil {

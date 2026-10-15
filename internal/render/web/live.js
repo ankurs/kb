@@ -6,7 +6,11 @@ window.$docsify={
   name:config.name,homepage:'README.md',loadSidebar:true,
   basePath:location.pathname.replace(/[^/]*$/,''),
   alias:{'/.*/_sidebar.md':'/_sidebar.md'},relativePath:true,subMaxLevel:3,
-  markdown:{renderer:{code:function(code,lang){
+  markdown:{renderer:{
+    image:function(href,title,text){
+      return this.origin.image.call(this,KBUI.excalidrawPreview(href),title,text)
+    },
+    code:function(code,lang){
     if(lang==='mermaid'){
       let safe=trustHTML?code:code.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       return '<div class="mermaid">'+safe+'</div>'

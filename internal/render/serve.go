@@ -102,9 +102,23 @@ func Handler(c config.Workspace) http.Handler {
 		for _, page := range inv.Pages {
 			for _, ref := range workspace.References(page.Markdown) {
 				resolved, _, e := inv.Resolve(page.Key, ref.Target)
-				if e == nil && resolved == key {
+				if e != nil {
+					continue
+				}
+				if resolved == key {
 					linked = true
 					break
+				}
+				if workspace.ExcalidrawPreviewKey(ref, resolved) == key {
+					scene, e := inv.Source(resolved)
+					if e == nil {
+						if info, e := os.Stat(scene); e == nil && info.Mode().IsRegular() {
+							if _, e := inv.ExcalidrawPreview(resolved); e == nil {
+								linked = true
+								break
+							}
+						}
+					}
 				}
 			}
 			if linked {
