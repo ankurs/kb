@@ -62,6 +62,18 @@ func TestServeSearchFiltersQMDHits(t *testing.T) {
 	if len(results.Results) != 2 || results.Results[0].Path != "tool-library/kb/borrowing-policy.md" || results.Results[1].Path != "handbook/check-in/README.md" {
 		t.Fatalf("results: %+v", results)
 	}
+	// qmd commonly configures collections with absolute workspace paths.
+	absolute := &qmdSearch{endpoint: upstream.URL, client: upstream.Client(), collections: map[string]string{
+		"wiki": c.Root, "handbook": filepath.Join(c.Root, "reference"),
+	}}
+	inv, err := workspace.Load(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	absoluteHits, err := absolute.query(httptest.NewRequest("GET", "/", nil).Context(), "borrowed tools", inv)
+	if err != nil || len(absoluteHits) != 2 || absoluteHits[0].Path != results.Results[0].Path || absoluteHits[1].Path != results.Results[1].Path {
+		t.Fatalf("absolute collection paths: %+v %v", absoluteHits, err)
+	}
 	for _, request := range []struct {
 		method, path string
 		status       int
@@ -212,5 +224,49 @@ func TestServeSearchRejectsLinkedQMDOutsideWorkspace(t *testing.T) {
 	}
 	if _, err := q.ServeCollections(); err == nil || !strings.Contains(err.Error(), "escapes content root") {
 		t.Fatalf("external config: %v", err)
+	}
+}
+
+func TestQMDShortQueryUsesLexicalSearch(t *testing.T) {
+	c := testWorkspace(t)
+	inv, err := workspace.Load(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		query string
+		types []string
+	}{
+		{"policy", []string{"lex"}},
+		{"반납", []string{"lex", "vec"}},
+	} {
+		t.Run(tc.query, func(t *testing.T) {
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var request struct {
+					Searches []struct {
+						Type string `json:"type"`
+					} `json:"searches"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Error(err)
+				}
+				if len(request.Searches) != len(tc.types) {
+					t.Errorf("query types: %+v", request)
+					return
+				}
+				for i, search := range request.Searches {
+					if search.Type != tc.types[i] {
+						t.Errorf("query types: %+v", request)
+					}
+				}
+				json.NewEncoder(w).Encode(map[string]any{"results": []qmdResult{{File: "qmd://wiki/tool-library/kb/borrowing-policy.md", Snippet: "policy"}}})
+			}))
+			defer upstream.Close()
+			backend := &qmdSearch{endpoint: upstream.URL, client: upstream.Client(), collections: map[string]string{"wiki": c.Root}}
+			hits, err := backend.query(httptest.NewRequest("GET", "/", nil).Context(), tc.query, inv)
+			if err != nil || len(hits) != 1 {
+				t.Fatalf("hits: %+v %v", hits, err)
+			}
+		})
 	}
 }

@@ -71,7 +71,7 @@ func startQMD(ctx context.Context, c config.Workspace) (*qmdSearch, func(), erro
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 	stop := func() { cancel(); <-done }
-	backend := &qmdSearch{endpoint: fmt.Sprintf("http://127.0.0.1:%d", port), client: &http.Client{Timeout: 15 * time.Second}, collections: collections}
+	backend := &qmdSearch{endpoint: fmt.Sprintf("http://127.0.0.1:%d", port), client: &http.Client{Timeout: 45 * time.Second}, collections: collections}
 	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
 	timeout := time.NewTimer(10 * time.Second)
@@ -103,7 +103,13 @@ func startQMD(ctx context.Context, c config.Workspace) (*qmdSearch, func(), erro
 }
 
 func (s *qmdSearch) query(ctx context.Context, text string, inv *workspace.Inventory) ([]searchHit, error) {
-	body, _ := json.Marshal(map[string]any{"searches": []map[string]string{{"type": "lex", "query": text}, {"type": "vec", "query": text}}, "rerank": false, "limit": 40})
+	searches := []map[string]string{{"type": "lex", "query": text}}
+	// Short ASCII terms should not load an embedding model on every keystroke.
+	// Keep semantic retrieval for multiword and non-Latin queries.
+	if len(strings.Fields(text)) > 1 || strings.IndexFunc(text, func(r rune) bool { return r > 127 }) >= 0 {
+		searches = append(searches, map[string]string{"type": "vec", "query": text})
+	}
+	body, _ := json.Marshal(map[string]any{"searches": searches, "rerank": false, "limit": 40})
 	req, err := http.NewRequestWithContext(ctx, "POST", s.endpoint+"/query", bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -146,7 +152,10 @@ func (s *qmdSearch) query(ctx context.Context, text string, inv *workspace.Inven
 		if !config.SafeRelative(relative) || relative == "." || strings.Contains(relative, "\\") {
 			continue
 		}
-		source, err := filepath.EvalSymlinks(filepath.Join(inv.Config.Root, base, filepath.FromSlash(relative)))
+		if !filepath.IsAbs(base) {
+			base = filepath.Join(inv.Config.Root, base)
+		}
+		source, err := filepath.EvalSymlinks(filepath.Join(base, filepath.FromSlash(relative)))
 		if err != nil {
 			continue
 		}

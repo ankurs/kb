@@ -50,8 +50,9 @@ shows a complete configuration.
 When the project has a local `.qmd/index.sqlite` from `qmd init` and a
 configured collection, `kb serve` starts its own private `qmd mcp --http`
 process on a loopback port. The live viewer first shows immediate local
-matches, then replaces them with hybrid results (lexical + semantic, without
-LLM reranking). Only current, visible Markdown pages become links; stale or
+matches, then replaces them with qmd results. Short ASCII terms use fast keyword
+retrieval; multiword or non-Latin queries use lexical + semantic retrieval
+without LLM reranking. Only current, visible Markdown pages become links; stale or
 out-of-workspace indexed hits are ignored. The qmd process stops with `kb serve`.
 If qmd is missing, uninitialized, untrusted, or a query fails, browser search
 continues without qmd. No qmd process starts during `kb build` or `kb publish`.
