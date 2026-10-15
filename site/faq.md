@@ -24,6 +24,13 @@ search, and single-file HTML that works with no server at all.
 Yes. `kb` reads ordinary Markdown with ordinary inline links, and excludes
 `.obsidian/` by default. Wiki-style `[[links]]` are not resolved.
 
+## Does it work with AI coding agents?
+
+Yes. Agents such as Claude Code, Codex, Mistral Vibe, and pi read and edit
+the Markdown directly, can run `kb check` to validate their changes, and can
+search your notes locally through qmd's MCP server. See
+[Use with coding agents](guides/coding-agents.md).
+
 ## Can I host the wiki publicly?
 
 Yes. Upload the `kb build` site to any static host, served from the root of a

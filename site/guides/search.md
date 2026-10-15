@@ -37,6 +37,9 @@ kb search --scope wiki "when is the day-five reminder sent?"
 - `search.qmd_config` (default `.qmd`) is where the project's qmd
   configuration lives. Define collections in `.qmd/index.yml`.
 
+To let a coding agent use the same index, run qmd as an MCP server; see
+[Use with coding agents](coding-agents.md#give-the-agent-semantic-search-with-qmd).
+
 `kb doctor` reports a missing project configuration or empty collections. A
 qmd configuration with update hooks, collection paths outside the project, or
 custom models must be approved with `qmd trust`; `kb` never changes trust
