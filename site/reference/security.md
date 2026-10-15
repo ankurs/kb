@@ -39,7 +39,12 @@ through symlinked outputs, and to replace directories it did not create.
   bundled. Viewing the page requests it from its host, and it is unavailable
   offline. Keep images local if a wiki must work offline or must not contact
   other hosts.
-- `kb serve` binds to `127.0.0.1` unless you choose otherwise.
+- `kb serve` binds to `127.0.0.1` unless you choose otherwise. With an
+  initialized qmd index, it launches a separate qmd HTTP process bound only
+  to loopback on an ephemeral port; browsers reach it only through the viewer
+  search endpoint, which filters results to inventoried pages. The process is
+  stopped when the server shuts down. If you bind `kb serve` to a public
+  interface, protect it as you would the rest of your notes.
 - qmd may download models the first time it indexes or searches, and your own
   `sync.command` may use the network. No other `kb` command does.
 

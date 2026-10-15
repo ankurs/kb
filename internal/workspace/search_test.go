@@ -76,6 +76,10 @@ func TestDefaultProjectConfigNeedsNoTrust(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", filepath.Dir(bin)+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("QMD_CONFIG_DIR", filepath.Join(t.TempDir(), "unrelated-index"))
+	if got := (QMD{Root: root, ConfigDir: ".qmd"}).CommandEnv(); !strings.Contains(strings.Join(got, "\n"), "QMD_CONFIG_DIR="+dir) {
+		t.Fatalf("project index not selected: %q", got)
+	}
 	if issues := Doctor(root, ".qmd"); len(issues) != 0 {
 		t.Fatalf("issues=%q", issues)
 	}

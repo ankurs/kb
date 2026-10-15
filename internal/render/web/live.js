@@ -38,7 +38,7 @@ window.$docsify={
 };
 fetch('_kb/viewer-data.json',{cache:'no-store'}).then(response=>{
   if(!response.ok)throw new Error('viewer data unavailable');return response.json()
-}).then(data=>KBUI.start(data)).catch(error=>{
+}).then(data=>KBUI.start(data,{remoteSearch:config.semanticSearch?query=>fetch('_kb/search?q='+encodeURIComponent(query),{cache:'no-store'}).then(response=>{if(!response.ok)throw new Error('qmd unavailable');return response.json()}):null})).catch(error=>{
   const results=document.getElementById('results');results.hidden=false;results.textContent=error.message
 });
 })();

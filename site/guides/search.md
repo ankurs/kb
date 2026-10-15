@@ -16,7 +16,8 @@ Searches Markdown directly, with no index, model, or network access.
 
 Every viewer, including the single-file bundles, has ranked search over page
 titles and content. Press Cmd/Ctrl+K to focus it and Escape to return to the
-navigation. It works offline and needs no setup.
+navigation. It works offline and needs no setup. Static sites and bundles always
+use this search.
 
 ## Hybrid retrieval with qmd
 
@@ -45,6 +46,17 @@ shows a complete configuration.
   `--scope` selects a qmd collection.
 - `search.qmd_config` (default `.qmd`) is where the project's qmd
   configuration lives. Define collections in `.qmd/index.yml`.
+
+When the project has a local `.qmd/index.sqlite` from `qmd init` and a
+configured collection, `kb serve` starts its own private `qmd mcp --http`
+process on a loopback port. The live viewer first shows immediate local
+matches, then replaces them with hybrid results (lexical + semantic, without
+LLM reranking). Only current, visible Markdown pages become links; stale or
+out-of-workspace indexed hits are ignored. The qmd process stops with `kb serve`.
+If qmd is missing, uninitialized, untrusted, or a query fails, browser search
+continues without qmd. No qmd process starts during `kb build` or `kb publish`.
+An index can download models when you first use hybrid search; `kb index`
+prepares them in advance. `kb -v serve` shows whether qmd was enabled.
 
 To let a coding agent use the same index, run qmd as an MCP server; see
 [Use with coding agents](coding-agents.md#give-the-agent-semantic-search-with-qmd).

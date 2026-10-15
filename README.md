@@ -47,7 +47,7 @@ to select a workspace explicitly. `kb init` does not overwrite an existing file.
 | `kb find --scope tool-library "seven calendar days"` | Search Markdown by keyword. |
 | `kb search --scope wiki "borrowing policy"` | Hybrid search over a local qmd collection. |
 | `kb index` | Run `qmd update` and `qmd embed`. |
-| `kb serve --port 3000` | Serve the wiki with automatic navigation and browser reload. |
+| `kb serve --port 3000` | Serve the wiki with live reload and optional qmd-backed search. |
 | `kb build` | Build a static site and local HTML snapshots. |
 | `kb publish` | Build an HTML-only distribution with `wiki.html` and a bundle per folder. |
 | `kb sync` | Run the sync command from configuration. |
@@ -88,8 +88,11 @@ standalone `dist/wiki.html`. For a no-build preview, download the
 fictional, images are embedded, and non-image source files are not included.
 All three viewers share a top bar, responsive collapsible navigation, active
 page highlighting, and ranked search over page titles and content. Press
-Cmd/Ctrl+K to search and Escape to return to the navigation. This browser
-search works offline and is separate from optional qmd retrieval.
+Cmd/Ctrl+K to search and Escape to return to the navigation. Static sites and
+bundles keep this offline search. When qmd is initialized
+and indexed in the workspace, `kb serve` also runs a private loopback
+`qmd mcp --http` process for hybrid search; results replace the immediate
+browser matches as they arrive. If qmd is absent or fails, search stays local.
 On narrow screens, the menu button opens the sidebar and moves focus to search;
 Escape closes it and returns focus to the button. Offscreen navigation is
 removed from keyboard focus order, and search caps the list at 40 results.

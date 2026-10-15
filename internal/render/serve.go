@@ -1,14 +1,17 @@
 package render
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/ankurs/kb/assets"
@@ -16,10 +19,16 @@ import (
 	"github.com/ankurs/kb/internal/workspace"
 )
 
-func Handler(c config.Workspace) http.Handler {
+func Handler(c config.Workspace) http.Handler { return handler(c, nil) }
+
+func handler(c config.Workspace, search *qmdSearch) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" && r.Method != "HEAD" {
 			http.Error(w, "method not allowed", 405)
+			return
+		}
+		if r.URL.Path == "/_kb/search" {
+			serveSearch(w, r, c, search)
 			return
 		}
 		if r.URL.Path == "/_kb/events" {
@@ -56,7 +65,7 @@ func Handler(c config.Workspace) http.Handler {
 		}
 		if r.URL.Path == "/" || r.URL.Path == "/index.html" {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			io.WriteString(w, LiveHTML(c, true))
+			io.WriteString(w, liveHTML(c, true, search != nil))
 			return
 		}
 		if r.URL.Path == "/_sidebar.md" {
@@ -205,15 +214,38 @@ func Serve(c config.Workspace) error {
 }
 
 func ServeWithLog(c config.Workspace, logf func(string, ...any)) error {
+	ctx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignal()
+	var search *qmdSearch
+	if backend, stop, err := startQMD(ctx, c); err == nil {
+		search = backend
+		defer stop()
+		if logf != nil {
+			logf("serve: qmd hybrid search enabled")
+		}
+	} else if logf != nil {
+		logf("serve: qmd unavailable (%v); using browser search", err)
+	}
 	addr := fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
 	fmt.Printf("kb serving %s at http://%s (Ctrl-C to stop)\n", c.Root, addr)
-	handler := Handler(c)
+	next := handler(c, search)
 	if logf != nil {
-		next := handler
-		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		base := next
+		next = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logf("serve: %s %s", r.Method, r.URL.Path)
-			next.ServeHTTP(w, r)
+			base.ServeHTTP(w, r)
 		})
 	}
-	return http.ListenAndServe(addr, handler)
+	server := &http.Server{Addr: addr, Handler: next}
+	go func() {
+		<-ctx.Done()
+		shutdown, done := context.WithTimeout(context.Background(), 5*time.Second)
+		defer done()
+		server.Shutdown(shutdown)
+	}()
+	err := server.ListenAndServe()
+	if err == http.ErrServerClosed {
+		return nil
+	}
+	return err
 }

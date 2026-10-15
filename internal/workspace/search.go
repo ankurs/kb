@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ankurs/kb/internal/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -29,10 +30,12 @@ func (q QMD) logf(format string, args ...any) {
 }
 
 func (q QMD) env() []string {
-	if q.ConfigDir == "" || q.ConfigDir == ".qmd" {
-		return os.Environ()
+	dir := q.ConfigDir
+	if dir == "" {
+		dir = ".qmd"
 	}
-	return append(os.Environ(), "QMD_CONFIG_DIR="+filepath.Join(q.Root, q.ConfigDir))
+	// Do not inherit a global QMD_CONFIG_DIR that points at another index.
+	return append(os.Environ(), "QMD_CONFIG_DIR="+filepath.Join(q.Root, dir))
 }
 
 func (q QMD) projectConfig() (string, error) {
@@ -214,6 +217,50 @@ func (q QMD) Search(query, scope string) (string, error) {
 	}
 	return out, nil
 }
+
+// ServeCollections reports project-local collections suitable for the live viewer.
+// An index created by qmd init is required; a checked-in config alone is not.
+func (q QMD) ServeCollections() (map[string]string, error) {
+	configPath, err := q.projectConfig()
+	if err != nil {
+		return nil, err
+	}
+	root := config.Workspace{Root: q.Root}
+	rel, err := filepath.Rel(q.Root, configPath)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := root.ReadablePath(rel); err != nil {
+		return nil, err
+	}
+	settings, err := q.configuredCollections()
+	if err != nil {
+		return nil, err
+	}
+	dir := q.ConfigDir
+	if dir == "" {
+		dir = ".qmd"
+	}
+	index := filepath.Join(dir, "index.sqlite")
+	if info, err := os.Stat(filepath.Join(q.Root, index)); err != nil || !info.Mode().IsRegular() {
+		return nil, errors.New("qmd index not initialized in this workspace; run `qmd init` and `kb index`")
+	}
+	if _, err := root.ReadablePath(index); err != nil {
+		return nil, err
+	}
+	if err := q.trusted(); err != nil {
+		return nil, err
+	}
+	paths := make(map[string]string, len(settings.Collections))
+	for name, collection := range settings.Collections {
+		paths[name] = collection.Path
+	}
+	return paths, nil
+}
+
+// CommandEnv applies the same project configuration to long-lived qmd processes.
+func (q QMD) CommandEnv() []string { return q.env() }
+
 func (q QMD) Index(force bool) error {
 	if _, err := q.configuredCollections(); err != nil {
 		return err
