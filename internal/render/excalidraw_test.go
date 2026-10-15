@@ -3,6 +3,8 @@ package render
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/binary"
+	"hash/crc32"
 	"image"
 	"image/png"
 	"net/http"
@@ -17,7 +19,14 @@ import (
 )
 
 const exampleScene = `{"type":"excalidraw","version":2,"elements":[],"appState":{},"files":{}}`
-const smallPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lF0AAAAASUVORK5CYII="
+
+var smallPNG = func() string {
+	var b bytes.Buffer
+	if err := png.Encode(&b, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
+		panic(err)
+	}
+	return base64.StdEncoding.EncodeToString(b.Bytes())
+}()
 
 func excalidrawFixture(t *testing.T) config.Workspace {
 	t.Helper()
@@ -67,6 +76,9 @@ func TestExcalidrawSidecarInViewers(t *testing.T) {
 	if bundle.Assets["diagrams/process.excalidraw"] != "data:image/png;base64,"+smallPNG {
 		t.Fatal("snapshot did not embed the scene's PNG preview")
 	}
+	if !strings.HasSuffix(bundle.Files["diagrams/process.excalidraw"], "diagrams/process.excalidraw") {
+		t.Fatal("offline snapshot did not preserve the editable scene link")
+	}
 	published, err := Publish(c)
 	if err != nil {
 		t.Fatal(err)
@@ -89,8 +101,36 @@ func TestExcalidrawSidecarInViewers(t *testing.T) {
 	}
 }
 
+func TestNestedExcalidrawImageLabelBuild(t *testing.T) {
+	c := excalidrawFixture(t)
+	md := "# Home\n\n![Process [draft]](diagrams/process.excalidraw)\n"
+	if err := os.WriteFile(filepath.Join(c.Root, "README.md"), []byte(md), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Build(c); err != nil {
+		t.Fatal(err)
+	}
+	data := readBundleData(t, filepath.Join(c.Root, ".kb", "snapshots", "wiki.html"))
+	if data.Assets["diagrams/process.excalidraw"] != "data:image/png;base64,"+smallPNG {
+		t.Fatal("nested image label did not embed the preview")
+	}
+	if err := os.Remove(filepath.Join(c.Root, "diagrams", "process.excalidraw.png")); err != nil {
+		t.Fatal(err)
+	}
+	inv, err := workspace.Load(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if issues := inv.Check(); len(issues) == 0 {
+		t.Fatal("check accepted a nested-label image without its preview")
+	}
+	if _, err := Build(c); err == nil {
+		t.Fatal("build accepted a nested-label image without its preview")
+	}
+}
+
 func TestExcalidrawMissingInvalidAndEscapingPreview(t *testing.T) {
-	for _, condition := range []string{"missing", "invalid", "escaping"} {
+	for _, condition := range []string{"missing", "invalid", "truncated", "corrupt", "oversized", "too-many-pixels", "escaping"} {
 		t.Run(condition, func(t *testing.T) {
 			c := excalidrawFixture(t)
 			preview := filepath.Join(c.Root, "diagrams", "process.excalidraw.png")
@@ -100,6 +140,32 @@ func TestExcalidrawMissingInvalidAndEscapingPreview(t *testing.T) {
 			switch condition {
 			case "invalid":
 				if err := os.WriteFile(preview, []byte("not a PNG"), 0644); err != nil {
+					t.Fatal(err)
+				}
+			case "truncated", "corrupt", "too-many-pixels":
+				b, _ := base64.StdEncoding.DecodeString(smallPNG)
+				if condition == "truncated" {
+					b = b[:33] // Complete IHDR, no pixel data. DecodeConfig accepts it.
+				} else if condition == "corrupt" {
+					b[45] ^= 0xff // Corrupt IDAT, keeping the valid IHDR intact.
+				} else {
+					binary.BigEndian.PutUint32(b[16:20], 8192)
+					binary.BigEndian.PutUint32(b[20:24], 8192)
+					binary.BigEndian.PutUint32(b[29:33], crc32.ChecksumIEEE(b[12:29]))
+				}
+				if condition == "truncated" || condition == "corrupt" || condition == "too-many-pixels" {
+					if _, err := png.DecodeConfig(bytes.NewReader(b)); err != nil {
+						t.Fatalf("test preview must have valid IHDR: %v", err)
+					}
+				}
+				if err := os.WriteFile(preview, b, 0644); err != nil {
+					t.Fatal(err)
+				}
+			case "oversized":
+				if err := os.WriteFile(preview, nil, 0644); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Truncate(preview, 20<<20+1); err != nil {
 					t.Fatal(err)
 				}
 			case "escaping":

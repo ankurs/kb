@@ -3,7 +3,7 @@
 function pathURL(path){return path.split('/').map(encodeURIComponent).join('/')}
 function excalidrawPreview(href){
   if(/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href))return href;
-  return href.replace(/\.excalidraw(?=([?#]|$))/i,'.excalidraw.png')
+  return href.replace(/\.excalidraw(?=[?#]|$)/i,extension=>extension+'.png')
 }
 function routePath(){
   let route=location.hash.replace(/^#\/?/,'').split('#',1)[0];

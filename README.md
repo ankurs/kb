@@ -139,7 +139,7 @@ stylesheets are errors rather than files served or copied into the site.
 For an editable Excalidraw drawing, keep `diagram.excalidraw` and export a PNG
 beside it as `diagram.excalidraw.png`. Embed it with
 `![Diagram](diagram.excalidraw)` and optionally link the source with
-`[Edit drawing](diagram.excalidraw)`. `kb check` requires a valid PNG sidecar
+`[Edit drawing](diagram.excalidraw)`. `kb check` fully validates the PNG sidecar
 for image embeds. Build and publish display the PNG offline; the original
 scene remains a separate file and is not included in HTML-only publishing.
 The CLI does not run Excalidraw or fetch its editor when building.

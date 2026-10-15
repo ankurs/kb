@@ -117,6 +117,11 @@ func pageData(inv *workspace.Inventory, filter func(string) bool, bundleDir stri
 					return out, err
 				}
 				out.Assets[target] = "data:image/png;base64," + base64.StdEncoding.EncodeToString(b)
+				if includeFiles {
+					if rel, err := filepath.Rel(bundleDir, source); err == nil {
+						out.Files[target] = filepath.ToSlash(rel)
+					}
+				}
 				continue
 			}
 			ext := strings.ToLower(filepath.Ext(source))

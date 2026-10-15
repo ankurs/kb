@@ -91,8 +91,9 @@ Export a PNG from Excalidraw and save it alongside the editable scene. For
 ```
 
 The image reference displays the PNG in the live, static, and single-file
-viewers. `kb check` and builds fail if its sidecar is missing, invalid, or
-outside the workspace. Re-export the PNG after editing the scene; `kb` does not
+viewers. `kb check` and builds fully decode the sidecar and fail if it is
+missing, corrupt, over 20 MiB, over 32 million pixels, or outside the
+workspace. Re-export the PNG after editing the scene; `kb` does not
 render `.excalidraw` JSON itself. The source link remains available in the live
 and static views; HTML-only `kb publish` embeds the preview, not the editable
 scene. A plain link to `.excalidraw` does not require a preview.

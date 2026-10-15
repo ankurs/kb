@@ -16,3 +16,11 @@ func TestExcalidrawPreviewReferences(t *testing.T) {
 		t.Fatalf("unexpected preview references: %+v", refs)
 	}
 }
+
+func TestNestedImageLabels(t *testing.T) {
+	md := `![Flow [draft]](flow.excalidraw) [Source [draft]](flow.excalidraw) ![Escaped \[draft\]](flow.excalidraw) \![literal](flow.excalidraw)`
+	refs := References(md)
+	if len(refs) != 4 || !refs[0].Image || refs[1].Image || !refs[2].Image || refs[3].Image {
+		t.Fatalf("nested and escaped labels: %+v", refs)
+	}
+}
