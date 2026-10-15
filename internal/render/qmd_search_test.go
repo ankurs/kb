@@ -270,3 +270,16 @@ func TestQMDShortQueryUsesLexicalSearch(t *testing.T) {
 		})
 	}
 }
+
+func TestServeQMDDisabledBeforeStartingProcess(t *testing.T) {
+	c := testWorkspace(t)
+	disabled := false
+	c.Search.ServeQMD = &disabled
+	backend, stop, err := startQMD(httptest.NewRequest("GET", "/", nil).Context(), c)
+	if backend != nil || stop != nil || err == nil || !strings.Contains(err.Error(), "search.serve_qmd") {
+		t.Fatalf("disabled qmd serve: backend=%v stop=%t err=%v", backend, stop != nil, err)
+	}
+	if c.Search.Provider != "qmd" {
+		t.Fatal("serve opt-out must not disable kb search and index")
+	}
+}

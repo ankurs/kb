@@ -91,8 +91,16 @@ page highlighting, and ranked search over page titles and content. Press
 Cmd/Ctrl+K to search and Escape to return to the navigation. Static sites and
 bundles keep this offline search. When qmd is initialized
 and indexed in the workspace, `kb serve` also runs a private loopback
-`qmd mcp --http` process for hybrid search; results replace the immediate
-browser matches as they arrive. If qmd is absent or fails, search stays local.
+`qmd mcp --http` process for search; results replace the immediate browser
+matches as they arrive. Short ASCII terms use keyword retrieval; multiword and
+non-Latin queries also use semantic retrieval. If qmd is absent or fails,
+search stays local. To keep `kb serve` browser-only without disabling `kb search`
+or `kb index`, set `search.serve_qmd: false` in `kb.yaml` or user settings:
+
+```yaml
+search:
+  serve_qmd: false
+```
 On narrow screens, the menu button opens the sidebar and moves focus to search;
 Escape closes it and returns focus to the button. Offscreen navigation is
 removed from keyboard focus order, and search caps the list at 40 results.
@@ -209,6 +217,7 @@ capture:
 search:
   provider: qmd
   qmd_config: .qmd
+  serve_qmd: true  # set false for browser-only search in kb serve
 server:
   host: 127.0.0.1
   port: 3000

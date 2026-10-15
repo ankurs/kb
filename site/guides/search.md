@@ -59,6 +59,17 @@ continues without qmd. No qmd process starts during `kb build` or `kb publish`.
 An index can download models when you first use hybrid search; `kb index`
 prepares them in advance. `kb -v serve` shows whether qmd was enabled.
 
+To keep the live viewer on browser-only search, without disabling `kb search`
+or `kb index`, add this to `kb.yaml` (or user settings):
+
+```yaml
+search:
+  serve_qmd: false
+```
+
+The default is `true`. Turning it off prevents `kb serve` from starting qmd
+or sending search queries to it; the live viewer keeps its local search.
+
 ![Live search with an illustrative qmd result in the fictional example wiki](../images/qmd-live-search.png)
 
 To let a coding agent use the same index, run qmd as an MCP server; see

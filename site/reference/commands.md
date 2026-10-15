@@ -76,7 +76,9 @@ Run `qmd update` and `qmd embed`.
 Serve the live viewer with automatic navigation and reload. If the workspace
 has an initialized qmd index and trusted collections, start a private loopback
 `qmd mcp --http` process for hybrid search. Otherwise, keep offline browser
-search; the static site and bundles always use offline search.
+search; the static site and bundles always use offline search. Set
+`search.serve_qmd: false` in `kb.yaml` or user settings to disable the qmd
+process for `kb serve` without changing `kb search` or `kb index`.
 
 | Flag | Meaning |
 | --- | --- |

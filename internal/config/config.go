@@ -70,7 +70,12 @@ type Capture struct {
 type Search struct {
 	Provider  string `yaml:"provider"`
 	QMDConfig string `yaml:"qmd_config"`
+	ServeQMD  *bool  `yaml:"serve_qmd"`
 }
+
+// UseQMDInServe defaults to true for loaded and programmatic workspaces.
+func (s Search) UseQMDInServe() bool { return s.ServeQMD == nil || *s.ServeQMD }
+
 type Publish struct {
 	Dir     string            `yaml:"dir"`
 	Wiki    string            `yaml:"wiki"`
@@ -93,7 +98,7 @@ type global struct {
 }
 
 func defaults() map[string]any {
-	return map[string]any{"version": 1, "root": ".", "exclude": []any{".git/**", ".kb/**", ".qmd/**", ".agents/**", ".claude/**", ".obsidian/**", ".plans/**", "**/.plans/**", "scripts/**", "vendor/**", "dist/**", "derived/**", "**/AGENTS.md", "**/CLAUDE.md", "**/_sidebar.md", "**/_coverpage.md"}, "output": map[string]any{"site": ".kb/site", "bundles": ".kb/snapshots"}, "capture": map[string]any{"inbox": "inbox.md", "templates": ".templates"}, "search": map[string]any{"provider": "qmd", "qmd_config": ".qmd"}, "publish": map[string]any{"dir": "dist", "wiki": "wiki.html"}, "server": map[string]any{"host": "127.0.0.1", "port": 3000}}
+	return map[string]any{"version": 1, "root": ".", "exclude": []any{".git/**", ".kb/**", ".qmd/**", ".agents/**", ".claude/**", ".obsidian/**", ".plans/**", "**/.plans/**", "scripts/**", "vendor/**", "dist/**", "derived/**", "**/AGENTS.md", "**/CLAUDE.md", "**/_sidebar.md", "**/_coverpage.md"}, "output": map[string]any{"site": ".kb/site", "bundles": ".kb/snapshots"}, "capture": map[string]any{"inbox": "inbox.md", "templates": ".templates"}, "search": map[string]any{"provider": "qmd", "qmd_config": ".qmd", "serve_qmd": true}, "publish": map[string]any{"dir": "dist", "wiki": "wiki.html"}, "server": map[string]any{"host": "127.0.0.1", "port": 3000}}
 }
 
 func merge(dst, src map[string]any) {

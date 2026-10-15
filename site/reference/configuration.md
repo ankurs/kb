@@ -45,6 +45,7 @@ capture:
 search:
   provider: qmd
   qmd_config: .qmd
+  serve_qmd: true  # set false for browser-only search in kb serve
 server:
   host: 127.0.0.1
   port: 3000
@@ -80,6 +81,7 @@ server:
 | `capture.templates` | `.templates` | Template folder for `kb new`. |
 | `search.provider` | `qmd` | Provider for `kb search` and `kb index`. |
 | `search.qmd_config` | `.qmd` | qmd configuration directory. |
+| `search.serve_qmd` | `true` | Start private qmd search for `kb serve` when initialized. Set `false` for browser-only search; `kb search` and `kb index` are unaffected. |
 | `server.host` | `127.0.0.1` | Bind address for `kb serve`. |
 | `server.port` | `3000` | Port for `kb serve`. |
 

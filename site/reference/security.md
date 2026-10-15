@@ -43,8 +43,10 @@ through symlinked outputs, and to replace directories it did not create.
   initialized qmd index, it launches a separate qmd HTTP process bound only
   to loopback on an ephemeral port; browsers reach it only through the viewer
   search endpoint, which filters results to inventoried pages. The process is
-  stopped when the server shuts down. If you bind `kb serve` to a public
-  interface, protect it as you would the rest of your notes.
+  stopped when the server shuts down. Set `search.serve_qmd: false` to keep
+  `kb serve` browser-only and avoid starting this process. If you bind
+  `kb serve` to a public interface, protect it as you would the rest of your
+  notes.
 - qmd may download models the first time it indexes or searches, and your own
   `sync.command` may use the network. No other `kb` command does.
 

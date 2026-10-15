@@ -10,7 +10,9 @@ kb serve --host 0.0.0.0          # expose on your network; use with care
 
 The live viewer re-reads the workspace as you edit and reloads the browser
 when files change. It binds to `127.0.0.1` unless you change
-`server.host` or pass `--host`.
+`server.host` or pass `--host`. With an initialized qmd index, live search
+can use qmd; set `search.serve_qmd: false` for browser-only search without
+disabling the CLI's qmd commands. See [Search](search.md).
 
 ## Static site and snapshots
 

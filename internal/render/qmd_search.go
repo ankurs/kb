@@ -36,6 +36,9 @@ type qmdSearch struct {
 // startQMD owns a private loopback HTTP process, never a shared daemon. The
 // browser talks only to kb; the qmd port is not published or configurable.
 func startQMD(ctx context.Context, c config.Workspace) (*qmdSearch, func(), error) {
+	if !c.Search.UseQMDInServe() {
+		return nil, nil, errors.New("qmd search disabled by search.serve_qmd")
+	}
 	if c.Search.Provider != "qmd" {
 		return nil, nil, errors.New("qmd search is not configured")
 	}
