@@ -1,10 +1,23 @@
 package workspace
 
-import "strings"
+import (
+	"path/filepath"
+	"strings"
+)
 
 type Reference struct {
 	Target string
 	Line   int
+	Image  bool
+}
+
+// ExcalidrawPreviewKey is the PNG sidecar of an image link to an editable
+// Excalidraw scene. Ordinary links to the scene remain links to its source.
+func ExcalidrawPreviewKey(ref Reference, key string) string {
+	if ref.Image && strings.EqualFold(filepath.Ext(key), ".excalidraw") {
+		return key + ".png"
+	}
+	return ""
 }
 
 // References finds inline Markdown links outside fenced code, including
@@ -67,7 +80,9 @@ func References(md string) []Reference {
 				}
 			}
 			if target != "" {
-				out = append(out, Reference{target, n + 1})
+				open := strings.LastIndex(line[:start-2], "[")
+				image := open > 0 && line[open-1] == '!'
+				out = append(out, Reference{Target: target, Line: n + 1, Image: image})
 			}
 			at = end + 1
 		}

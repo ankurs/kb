@@ -10,7 +10,7 @@ a neighborhood tool-lending pilot that ran every day from 11 September to
 - Thirty dated journal entries, nine meetings, and four weekly reviews.
 - A source register, a decision log, an action register, and a current
   policy that links back to the evidence behind it.
-- Mermaid diagrams, a validated SVG, and highlighted YAML and JSON.
+- Mermaid diagrams, a validated SVG, an editable Excalidraw scene with an offline PNG preview, and highlighted YAML and JSON.
 - A mounted volunteer handbook with an HTML fallback.
 - qmd collections and retrieval benchmarks.
 - A safe, local-only `sync.command`.

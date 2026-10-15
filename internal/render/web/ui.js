@@ -1,6 +1,10 @@
 (function(global){
 'use strict';
 function pathURL(path){return path.split('/').map(encodeURIComponent).join('/')}
+function excalidrawPreview(href){
+  if(/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href))return href;
+  return href.replace(/\.excalidraw(?=([?#]|$))/i,'.excalidraw.png')
+}
 function routePath(){
   let route=location.hash.replace(/^#\/?/,'').split('#',1)[0];
   try{return decodeURIComponent(route)}catch(e){return route}
@@ -165,5 +169,5 @@ function externalLinks(root,openInNewTab){
     rel.add('noopener');rel.add('noreferrer');a.setAttribute('rel',[...rel].join(' '))
   })
 }
-global.KBUI={start,externalLinks};
+global.KBUI={start,externalLinks,excalidrawPreview};
 })(window);

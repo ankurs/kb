@@ -4,6 +4,8 @@
 
 `cmd/kb` is the CLI entry point. `internal/cli` defines commands; `internal/config` loads and validates `kb.yaml`; `internal/workspace` discovers Markdown, links, and navigation; `internal/render` serves and builds the viewers. Browser scripts and styles live in `internal/render/web`, while pinned third-party assets and licenses live in `assets/vendor`. The fictional workspace in `testdata/sample` is both documentation and a test fixture. Keep generated `.kb/` and `dist/` output out of commits unless explicitly requested.
 
+Keep the root `README.md` and the user documentation in `site/` in sync with behavior, commands, configuration, examples, and security changes. Update both in the same change rather than leaving either outdated.
+
 ## Build, Test, and Development Commands
 
 - `go build -o /tmp/kb ./cmd/kb` builds the CLI.

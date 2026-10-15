@@ -4,6 +4,11 @@
 content checks, local search, a browser viewer, and portable HTML bundles.
 Markdown files remain the source of truth.
 
+**Documentation:** [ankurs.github.io/kb](https://ankurs.github.io/kb/) has the
+quick start, guides, command and configuration reference, and security model.
+This README is a compact overview; the [site source](site/README.md) remains in
+the repository for offline reading and contributions.
+
 ## Install
 
 Requires Go 1.24 or later.
@@ -61,7 +66,8 @@ pilot used every day from **11 September to 10 October 2026**. Thirty dated
 [meetings](testdata/sample/tool-library/meetings/README.md), four weekly reviews,
 a source register, and a current policy show the capture → evidence → decision
 → status loop. It also demonstrates Mermaid and SVG diagrams, a mounted
-handbook, qmd collections, offline builds, publishing, and a safe local sync.
+handbook, an editable Excalidraw scene with an offline PNG preview, qmd
+collections, offline builds, publishing, and a safe local sync.
 
 From the repository root, build it in a disposable directory so the checked-in
 Markdown stays untouched:
@@ -129,6 +135,14 @@ Images referenced by Markdown are embedded in the bundles. Links to other local
 files resolve relative to the bundle and require those files to be present.
 In the default safe mode, links to active files such as HTML, scripts, and
 stylesheets are errors rather than files served or copied into the site.
+
+For an editable Excalidraw drawing, keep `diagram.excalidraw` and export a PNG
+beside it as `diagram.excalidraw.png`. Embed it with
+`![Diagram](diagram.excalidraw)` and optionally link the source with
+`[Edit drawing](diagram.excalidraw)`. `kb check` requires a valid PNG sidecar
+for image embeds. Build and publish display the PNG offline; the original
+scene remains a separate file and is not included in HTML-only publishing.
+The CLI does not run Excalidraw or fetch its editor when building.
 
 `kb publish` builds a separate distribution without running `kb build` or
 `kb sync`. By default it writes `dist/wiki.html` and one focused HTML file per
@@ -277,9 +291,10 @@ matching `v*` create macOS and Linux release archives with SHA-256 checksums.
 
 ## Documentation site
 
-[`site/`](site/README.md) is a `kb` workspace containing the user
-documentation. The Pages workflow checks it, builds it with `kb build`, and
-deploys `site/.kb/site` to GitHub Pages. Preview it locally with
+[`site/`](site/README.md) is a `kb` workspace containing the
+[full documentation](https://ankurs.github.io/kb/). The Pages workflow checks
+it, builds it with `kb build`, and deploys `site/.kb/site` to GitHub Pages.
+Preview it locally with
 `go run ./cmd/kb --workspace site serve`.
 
 ## Development
