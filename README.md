@@ -272,6 +272,13 @@ checks formatting and dependencies, runs `go vet` and race-enabled tests, builds
 the CLI, and checks, builds, and verifies the sample workspace. Version tags
 matching `v*` create macOS and Linux release archives with SHA-256 checksums.
 
+## Documentation site
+
+[`site/`](site/README.md) is a `kb` workspace containing the user
+documentation. The Pages workflow checks it, builds it with `kb build`, and
+deploys `site/.kb/site` to GitHub Pages. Preview it locally with
+`go run ./cmd/kb --workspace site serve`.
+
 ## Development
 
 ```sh

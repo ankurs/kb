@@ -44,3 +44,4 @@ jobs:
           "${RUNNER_TEMP}/kb" --workspace testdata/sample build
           "${RUNNER_TEMP}/kb" --workspace testdata/sample verify
           "${RUNNER_TEMP}/kb" --workspace testdata/sample publish
+          "${RUNNER_TEMP}/kb" --workspace site check

@@ -1,0 +1,25 @@
+version: 1
+id: kb-docs
+name: kb
+navigation:
+  overrides:
+    start: {title: Get started, order: 1}
+    start/install.md: {order: 1}
+    start/README.md: {title: Quick start, order: 2}
+    start/concepts.md: {order: 3}
+    guides: {title: Guides, order: 2}
+    guides/capture.md: {order: 1}
+    guides/viewing.md: {order: 2}
+    guides/publishing.md: {order: 3}
+    guides/search.md: {order: 4}
+    guides/mounts.md: {order: 5}
+    guides/automation.md: {order: 6}
+    reference: {title: Reference, order: 3}
+render:
+  trust_html: false
+output:
+  site: .kb/site
+  bundles: .kb/snapshots
+publish:
+  dir: dist
+  wiki: kb-docs.html
