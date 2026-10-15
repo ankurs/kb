@@ -25,10 +25,19 @@ For semantic and hybrid retrieval, `kb` delegates to
 optional; install it separately.
 
 ```sh
-qmd init                                   # create .qmd/index.sqlite
+qmd init                                   # create the project's .qmd/ setup
+qmd collection add . --name wiki           # index this workspace's Markdown
 kb index                                   # qmd update + qmd embed
 kb search --scope wiki "when is the day-five reminder sent?"
 ```
+
+`qmd collection add` registers the workspace as the `wiki` collection in
+`.qmd/index.yml`; `kb index` refuses to run until at least one collection
+exists. Add `ignore` entries for generated output such as `.kb/**` and
+`dist/**` there, since the static site contains copies of your pages. The
+example workspace's
+[`.qmd/index.yml`](https://github.com/ankurs/kb/blob/main/testdata/sample/.qmd/index.yml)
+shows a complete configuration.
 
 - `kb index` updates documents and generates embeddings. Models download
   once; `--force` re-embeds everything.

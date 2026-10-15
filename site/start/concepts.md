@@ -24,7 +24,8 @@ reorder, or hide any path.
 
 A mount presents another Markdown tree, such as a shared handbook, under a
 name inside the wiki. A mount can name an HTML fallback that supplies its
-pages when the source directory is unavailable. See [Mounts](../guides/mounts.md).
+pages to snapshot and published bundles when the source directory is
+unavailable. See [Mounts](../guides/mounts.md).
 
 ## Outputs
 

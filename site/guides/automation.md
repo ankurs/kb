@@ -26,8 +26,12 @@ jobs:
         with: {go-version: '1.24'}
       - run: go install github.com/ankurs/kb/cmd/kb@latest
       - run: kb check
-      - run: kb verify   # only if you commit .kb/snapshots
+      - run: kb verify   # only if you commit both .kb/site and .kb/snapshots
 ```
+
+`kb verify` compares committed output with what `kb build` would write now, so
+do not run `kb build` before it in CI: that would regenerate the output and
+hide a stale commit.
 
 ## Hosting the static site
 

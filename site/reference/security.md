@@ -33,10 +33,15 @@ through symlinked outputs, and to replace directories it did not create.
 
 ## Network
 
-- No viewer loads anything from a CDN or the network.
+- Viewer code and assets (search, Markdown rendering, Mermaid, highlighting)
+  are bundled; no viewer loads them from a CDN.
+- Content your notes reference by URL, such as a remote image, is not
+  bundled. Viewing the page requests it from its host, and it is unavailable
+  offline. Keep images local if a wiki must work offline or must not contact
+  other hosts.
 - `kb serve` binds to `127.0.0.1` unless you choose otherwise.
-- Only `kb index` (model downloads by qmd) and your own `sync.command` may use
-  the network.
+- qmd may download models the first time it indexes or searches, and your own
+  `sync.command` may use the network. No other `kb` command does.
 
 ## Sync is trusted configuration
 

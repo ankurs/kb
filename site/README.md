@@ -24,7 +24,8 @@ when it is the wrong choice.
   anchors, and pages without exactly one title, so a wiki stays navigable as
   it grows.
 - **Works offline.** Search, viewers, Mermaid diagrams, and syntax
-  highlighting ship inside the binary. Nothing is fetched at view time.
+  highlighting ship inside the binary and the generated HTML. Only content
+  your notes link to by URL, such as remote images, is fetched at view time.
 - **Portable output.** `kb publish` writes one self-contained `wiki.html`
   (plus one file per folder) that you can email, archive, or open from a USB
   stick.

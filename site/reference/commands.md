@@ -87,8 +87,9 @@ warnings.
 
 ### kb verify
 
-Run `kb check`'s validations, then confirm the snapshots match what
-`kb build` would write. Writes nothing; exits non-zero on the first error.
+Run `kb check`'s validations, then confirm the snapshots and the static site
+match what `kb build` would write. Writes nothing; exits non-zero on the first
+error, including a missing output directory.
 
 ### kb publish
 

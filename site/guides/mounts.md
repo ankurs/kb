@@ -23,8 +23,10 @@ behaves the same whether it is viewed on its own or inside another wiki.
 ## Fallbacks
 
 If the mount's path is unavailable (for example, an uninitialized submodule),
-`kb` reads the mount's pages from its `fallback` HTML bundle instead. Links
-into the mount are then reported as warnings rather than errors.
+the HTML bundles written by `kb build` and `kb publish` take the mount's pages
+from its `fallback` bundle instead. The live viewer (`kb serve`) and the static
+site do not use the fallback: they omit the mount until its path is available
+again. Links into the mount are reported as warnings rather than errors.
 
 Build the fallback while the mount is present:
 

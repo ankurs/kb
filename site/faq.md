@@ -9,8 +9,11 @@ output goes to `.kb/` and `dist/`.
 ## Does it need a network connection?
 
 No. Every viewer, including search, diagrams, and highlighting, is embedded
-in the binary and the generated HTML. Only optional qmd model downloads and
-your own `sync.command` touch the network.
+in the binary and the generated HTML. Remote content your notes link to by
+URL, such as an image hosted elsewhere, is still loaded from its host and is
+unavailable offline; keep images in the workspace to avoid that. Otherwise,
+only optional qmd model downloads and your own `sync.command` touch the
+network.
 
 ## How is this different from a static site generator?
 

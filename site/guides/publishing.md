@@ -32,8 +32,10 @@ publish:
 With neither `include` nor `exclude`, every folder and root page is
 published. When either is set, root pages are omitted unless `root: true`.
 Selection applies to the combined wiki and the focused files alike.
-Publishing validates only the selected pages and what they link to, so an
-unavailable mount that is excluded does not block the rest.
+Publishing reads only the selected pages and what they link to, so an
+unavailable mount that is excluded does not block the rest. It does not run
+the heading, link, and anchor checks of `kb check`, and links to missing
+local files are simply left inactive; run `kb check` before publishing.
 
 One-off overrides on the command line:
 

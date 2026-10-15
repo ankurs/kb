@@ -58,7 +58,7 @@ dated meeting notes or topic pages from templates. The
 ## Share it
 
 ```sh
-kb publish
+kb check && kb publish
 ```
 
 This writes `dist/wiki.html`, a single file with every page, image, and the

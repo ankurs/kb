@@ -38,9 +38,11 @@ marks with a `.kb-generated` file.
 kb verify
 ```
 
-`kb verify` runs the same checks as `kb check`, then confirms the snapshots on
-disk match what `kb build` would produce now, without writing anything. Use it
-in CI when snapshots are committed, to catch output that is out of date.
+`kb verify` runs the same checks as `kb check`, then confirms that both the
+snapshots and the static site on disk match what `kb build` would produce now,
+without writing anything. It fails if either output is missing, out of date,
+or contains extra files. Use it in CI when you commit both `output.site` and
+`output.bundles`, to catch output that is out of date.
 
 ## How navigation is built
 

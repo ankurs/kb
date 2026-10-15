@@ -52,8 +52,17 @@ Set up the index once in the workspace (see [Search](search.md)):
 
 ```sh
 qmd init
+qmd collection add . --name wiki
 kb index
 ```
+
+`qmd collection add` registers the workspace as the `wiki` collection in
+`.qmd/index.yml`; `kb index` refuses to run until at least one collection
+exists. Add `ignore` entries for generated output such as `.kb/**` and
+`dist/**` there, since the static site contains copies of your pages. The
+example workspace's
+[`.qmd/index.yml`](https://github.com/ankurs/kb/blob/main/testdata/sample/.qmd/index.yml)
+shows a complete configuration.
 
 Then register `qmd mcp` as a stdio server in your agent, run from the
 workspace root.
