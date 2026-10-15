@@ -47,6 +47,9 @@ func PublishWithLog(c config.Workspace, logf func(string, ...any)) (PublishResul
 			known[parts[0]] = true
 		}
 	}
+	for _, m := range inv.Missing {
+		known[m.Name] = true
+	}
 	chosen := map[string]bool{}
 	if len(c.Publish.Include) == 0 {
 		for group := range known {
@@ -78,7 +81,11 @@ func PublishWithLog(c config.Workspace, logf func(string, ...any)) (PublishResul
 		}
 	}
 	log("publish: compiling HTML for %d folders", len(chosen))
-	compiled, warnings, err := compileBundles(c, dir, filter, false)
+	data, warnings, err := effectiveData(inv, dir, filter, false)
+	if err != nil {
+		return result, err
+	}
+	compiled, err := compileData(c, data, filter)
 	if err != nil {
 		return result, err
 	}

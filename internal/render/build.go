@@ -20,12 +20,13 @@ import (
 )
 
 type BundleData struct {
-	Title  string            `json:"title"`
-	Pages  map[string]string `json:"pages"`
-	Assets map[string]string `json:"assets"`
-	Files  map[string]string `json:"files"`
-	Nav    *workspace.Node   `json:"nav"`
-	Mounts []string          `json:"mounts,omitempty"`
+	Title     string            `json:"title"`
+	Pages     map[string]string `json:"pages"`
+	Assets    map[string]string `json:"assets"`
+	Files     map[string]string `json:"files"`
+	Nav       *workspace.Node   `json:"nav"`
+	Mounts    []string          `json:"mounts,omitempty"`
+	TrustHTML bool              `json:"trustHTML"`
 }
 type Result struct {
 	Site     string
@@ -34,6 +35,11 @@ type Result struct {
 }
 
 func writeChanged(path string, data []byte) error {
+	if info, err := os.Lstat(path); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("refusing snapshot symlink %s", path)
+	} else if err != nil && !os.IsNotExist(err) {
+		return err
+	}
 	old, err := os.ReadFile(path)
 	if err == nil && bytes.Equal(old, data) {
 		return nil
@@ -56,7 +62,7 @@ func writeChanged(path string, data []byte) error {
 	return os.Rename(tmp.Name(), path)
 }
 func pageData(inv *workspace.Inventory, filter func(string) bool, bundleDir string, includeFiles bool) (BundleData, error) {
-	out := BundleData{Title: inv.Config.Name, Pages: map[string]string{}, Assets: map[string]string{}, Files: map[string]string{}, Nav: inv.Nav()}
+	out := BundleData{Title: inv.Config.Name, Pages: map[string]string{}, Assets: map[string]string{}, Files: map[string]string{}, Nav: inv.Nav(), TrustHTML: inv.Config.Render.TrustHTML}
 	for _, mount := range inv.Config.Mounts {
 		out.Mounts = append(out.Mounts, mount.Name)
 	}
@@ -68,7 +74,10 @@ func pageData(inv *workspace.Inventory, filter func(string) bool, bundleDir stri
 		out.Pages[key] = p.Markdown
 		for _, ref := range workspace.References(p.Markdown) {
 			target, _, err := inv.Resolve(key, ref.Target)
-			if err != nil || target == "" {
+			if err != nil {
+				return out, err
+			}
+			if target == "" {
 				continue
 			}
 			if _, ok := inv.Pages[target]; ok {
@@ -76,11 +85,14 @@ func pageData(inv *workspace.Inventory, filter func(string) bool, bundleDir stri
 			}
 			source, err := inv.Source(target)
 			if err != nil {
-				continue
+				return out, err
 			}
-			info, err := os.Lstat(source)
+			info, err := os.Stat(source)
 			if err != nil || !info.Mode().IsRegular() {
 				continue
+			}
+			if err := checkActiveResource(inv.Config, source, target); err != nil {
+				return out, err
 			}
 			ext := strings.ToLower(filepath.Ext(source))
 			switch ext {
@@ -88,6 +100,11 @@ func pageData(inv *workspace.Inventory, filter func(string) bool, bundleDir stri
 				b, err := os.ReadFile(source)
 				if err != nil {
 					return out, err
+				}
+				if ext == ".svg" {
+					if err := safeSVG(b); err != nil {
+						return out, fmt.Errorf("%s: %w", target, err)
+					}
 				}
 				mt := mime.TypeByExtension(ext)
 				if ext == ".svg" {
@@ -123,14 +140,14 @@ func Bundle(data BundleData) ([]byte, error) {
 	b.WriteString("<style>" + string(css) + "</style></head><body><aside><h2>" + html.EscapeString(data.Title) + "</h2><input id=\"search\" type=\"search\" placeholder=\"Search pages and content\" aria-label=\"Search\"><div id=\"results\"></div><nav id=\"nav\"></nav></aside><main><article id=\"article\"></article></main><script type=\"application/json\" id=\"page-data\">")
 	b.Write(jsonData)
 	b.WriteString("</script>")
-	for _, name := range []string{"bundle/marked-4.3.0.min.js", "mermaid/mermaid-11.17.2.min.js", "bundle/highlight-11.9.0.min.js"} {
+	for _, name := range []string{"bundle/marked-4.3.0.min.js", "bundle/purify-3.2.6.min.js", "mermaid/mermaid-11.17.2.min.js", "bundle/highlight-11.9.0.min.js"} {
 		src, err := asset(name)
 		if err != nil {
 			return nil, err
 		}
 		b.WriteString("<script>" + script(src) + "</script>")
 	}
-	b.WriteString("<script>mermaid.initialize({startOnLoad:false,theme:'dark',securityLevel:'loose'});</script><script>" + webFile("bundle.js") + "</script></body></html>")
+	b.WriteString("<script>mermaid.initialize({startOnLoad:false,theme:'dark',securityLevel:'strict'});</script><script>" + webFile("bundle.js") + "</script></body></html>")
 	return []byte(b.String()), nil
 }
 func focusedNav(root *workspace.Node, prefix string) *workspace.Node {
@@ -161,7 +178,7 @@ func focusedNav(root *workspace.Node, prefix string) *workspace.Node {
 }
 func fallback(c config.Workspace, m config.Mount) (BundleData, error) {
 	var data BundleData
-	file, err := c.Path(m.Fallback)
+	file, err := c.ReadablePath(m.Fallback)
 	if err != nil {
 		return data, err
 	}
@@ -186,6 +203,26 @@ func fallback(c config.Workspace, m config.Mount) (BundleData, error) {
 	if len(data.Pages) == 0 {
 		return data, errors.New("fallback contains no pages")
 	}
+	for key, value := range data.Assets {
+		media, encoded, ok := strings.Cut(value, ",")
+		if !ok || !strings.HasSuffix(media, ";base64") {
+			return data, fmt.Errorf("invalid fallback asset %s", key)
+		}
+		kind := strings.TrimSuffix(media, ";base64")
+		switch kind {
+		case "data:image/png", "data:image/jpeg", "data:image/gif", "data:image/webp":
+		case "data:image/svg+xml":
+			b, err := base64.StdEncoding.DecodeString(encoded)
+			if err != nil {
+				return data, fmt.Errorf("invalid fallback SVG %s: %w", key, err)
+			}
+			if err := safeSVG(b); err != nil {
+				return data, fmt.Errorf("unsafe fallback SVG %s: %w", key, err)
+			}
+		default:
+			return data, fmt.Errorf("unsupported fallback asset %s", key)
+		}
+	}
 	return data, nil
 }
 
@@ -203,35 +240,62 @@ func compileBundles(c config.Workspace, bundleDir string, filter func(string) bo
 	if err != nil {
 		return nil, nil, err
 	}
-	data, err := pageData(inv, filter, bundleDir, includeFiles)
+	data, warnings, err := effectiveData(inv, bundleDir, filter, includeFiles)
 	if err != nil {
 		return nil, nil, err
 	}
+	result, err := compileData(c, data, filter)
+	return result, warnings, err
+}
+
+// effectiveData reads only selected pages and mounts. Build passes nil to
+// include the complete inventory; publish selects folders before calling it.
+func effectiveData(inv *workspace.Inventory, bundleDir string, filter func(string) bool, includeFiles bool) (BundleData, []string, error) {
+	c := inv.Config
+	data, err := pageData(inv, filter, bundleDir, includeFiles)
+	if err != nil {
+		return BundleData{}, nil, err
+	}
 	var warnings []string
 	for _, m := range inv.Missing {
-		if m.Fallback == "" {
-			warnings = append(warnings, "optional mount "+m.Name+" absent; omitted")
+		if filter != nil && !filter(m.Name+"/README.md") {
 			continue
+		}
+		if m.Fallback == "" {
+			return BundleData{}, nil, fmt.Errorf("mount %s missing and no fallback configured", m.Name)
 		}
 		snapshot, err := fallback(c, m)
 		if err != nil {
-			return nil, nil, err
+			return BundleData{}, nil, err
+		}
+		// Current focused snapshots use workspace-relative keys for both pages
+		// and assets. Legacy mount-relative snapshots need both normalized.
+		canonical, relative := false, false
+		for k := range snapshot.Pages {
+			if strings.HasPrefix(k, m.Name+"/") {
+				canonical = true
+			} else {
+				relative = true
+			}
+		}
+		if canonical && relative {
+			return BundleData{}, nil, fmt.Errorf("mount %s fallback mixes workspace- and mount-relative pages", m.Name)
 		}
 		for k, v := range snapshot.Pages {
 			key := k
-			if !strings.HasPrefix(key, m.Name+"/") {
+			if relative {
 				key = m.Name + "/" + key
 			}
-			if filter == nil || filter(key) {
-				data.Pages[key] = v
-			}
+			data.Pages[key] = v
 		}
 		for k, v := range snapshot.Assets {
 			key := k
-			if !strings.HasPrefix(key, m.Name+"/") {
+			if relative && !strings.HasPrefix(key, m.Name+"/") {
 				key = m.Name + "/" + key
 			}
-			if filter == nil || filter(key) {
+			// A live page may reference the same workspace-level asset. Keep
+			// the current file rather than replacing it with an older snapshot.
+			if _, live := data.Assets[key]; !live {
 				data.Assets[key] = v
 			}
 		}
@@ -240,10 +304,25 @@ func compileBundles(c config.Workspace, bundleDir string, filter func(string) bo
 	if len(inv.Missing) > 0 || filter != nil {
 		data.Nav = navFromPages(data.Pages, c)
 	}
+	data.TrustHTML = c.Render.TrustHTML
+	return data, warnings, nil
+}
+
+func compileData(c config.Workspace, data BundleData, filter func(string) bool) (map[string][]byte, error) {
+	var err error
+	if filter != nil {
+		for key := range data.Pages {
+			if !filter(key) {
+				delete(data.Pages, key)
+			}
+		}
+		data.Assets, data.Files = resourcesForPages(data, data.Pages)
+		data.Nav = navFromPages(data.Pages, c)
+	}
 	result := map[string][]byte{}
 	result["wiki.html"], err = Bundle(data)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	groups := map[string]bool{}
 	for key := range data.Pages {
@@ -252,28 +331,49 @@ func compileBundles(c config.Workspace, bundleDir string, filter func(string) bo
 		}
 	}
 	for name := range groups {
-		focus := BundleData{Title: c.Name + " — " + name, Pages: map[string]string{}, Assets: map[string]string{}, Files: map[string]string{}, Nav: focusedNav(data.Nav, name), Mounts: data.Mounts}
+		focus := BundleData{Title: c.Name + " — " + name, Pages: map[string]string{}, Assets: map[string]string{}, Files: map[string]string{}, Nav: focusedNav(data.Nav, name), Mounts: data.Mounts, TrustHTML: c.Render.TrustHTML}
 		for k, v := range data.Pages {
 			if strings.HasPrefix(k, name+"/") {
 				focus.Pages[k] = v
 			}
 		}
-		for k, v := range data.Assets {
-			if strings.HasPrefix(k, name+"/") {
-				focus.Assets[k] = v
-			}
-		}
-		for k, v := range data.Files {
-			if strings.HasPrefix(k, name+"/") {
-				focus.Files[k] = v
-			}
-		}
+		focus.Assets, focus.Files = resourcesForPages(data, focus.Pages)
 		result[name+".html"], err = Bundle(focus)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
-	return result, warnings, nil
+	return result, nil
+}
+
+// A filtered page may reference an image outside its own top-level folder.
+// Select resources by actual page references, not by the resource's folder.
+func resourcesForPages(data BundleData, pages map[string]string) (map[string]string, map[string]string) {
+	assets, files := map[string]string{}, map[string]string{}
+	inv := &workspace.Inventory{Pages: map[string]workspace.Page{}}
+	for key := range pages {
+		for _, mount := range data.Mounts {
+			if strings.HasPrefix(key, mount+"/") {
+				inv.Pages[key] = workspace.Page{Mount: mount}
+				break
+			}
+		}
+	}
+	for key, md := range pages {
+		for _, ref := range workspace.References(md) {
+			target, _, err := inv.Resolve(key, ref.Target)
+			if err != nil {
+				continue
+			}
+			if value, ok := data.Assets[target]; ok {
+				assets[target] = value
+			}
+			if value, ok := data.Files[target]; ok {
+				files[target] = value
+			}
+		}
+	}
+	return assets, files
 }
 func Verify(c config.Workspace) error {
 	expected, _, err := ExpectedBundles(c)
@@ -285,7 +385,11 @@ func Verify(c config.Workspace) error {
 		return err
 	}
 	for name, want := range expected {
-		actual, err := os.ReadFile(filepath.Join(dir, name))
+		path := filepath.Join(dir, name)
+		if info, err := os.Lstat(path); err == nil && !info.Mode().IsRegular() {
+			return fmt.Errorf("stale snapshot %s; run `kb build`", name)
+		}
+		actual, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("%s: %w", name, err)
 		}
@@ -301,18 +405,38 @@ func Verify(c config.Workspace) error {
 	if err != nil {
 		return err
 	}
-	sidebar, err := os.ReadFile(filepath.Join(site, "_sidebar.md"))
+	files, err := siteFiles(inv)
 	if err != nil {
-		return fmt.Errorf("site not built: %w", err)
+		return err
 	}
-	if !bytes.Equal(sidebar, []byte(workspace.Sidebar(inv.Nav()))) {
-		return errors.New("stale site navigation; run `kb build`")
-	}
-	for _, key := range inv.Keys {
-		b, err := os.ReadFile(filepath.Join(site, filepath.FromSlash(key)))
-		if err != nil || !bytes.Equal(b, []byte(inv.Pages[key].Markdown)) {
-			return fmt.Errorf("stale site page %s; run `kb build`", key)
+	for name, want := range files {
+		path := filepath.Join(site, filepath.FromSlash(name))
+		info, e := os.Lstat(path)
+		if e != nil || !info.Mode().IsRegular() {
+			return fmt.Errorf("stale site file %s; run `kb build`", name)
 		}
+		got, e := os.ReadFile(path)
+		if e != nil || !bytes.Equal(got, want) {
+			return fmt.Errorf("stale site file %s; run `kb build`", name)
+		}
+	}
+	if err := filepath.WalkDir(site, func(path string, d fs.DirEntry, e error) error {
+		if e != nil {
+			return e
+		}
+		if d.IsDir() {
+			return nil
+		}
+		rel, e := filepath.Rel(site, path)
+		if e != nil {
+			return e
+		}
+		if _, ok := files[filepath.ToSlash(rel)]; !ok {
+			return fmt.Errorf("stale site file %s; run `kb build`", rel)
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 	return nil
 }
@@ -370,8 +494,84 @@ func navFromPages(pages map[string]string, c config.Workspace) *workspace.Node {
 	sort.Strings(inv.Keys)
 	return inv.Nav()
 }
+
+// siteFiles is the single inventory for build and read-only verification.
+func siteFiles(inv *workspace.Inventory) (map[string][]byte, error) {
+	c := inv.Config
+	files := map[string][]byte{
+		"index.html":    []byte(LiveHTML(c, false)),
+		"_sidebar.md":   []byte(workspace.Sidebar(inv.Nav())),
+		"_kb/live.css":  []byte(webFile("live.css")),
+		".kb-generated": []byte("kb generated site\n"),
+	}
+	err := fs.WalkDir(assets.FS, "vendor", func(path string, d fs.DirEntry, e error) error {
+		if e != nil {
+			return e
+		}
+		if d.IsDir() {
+			return nil
+		}
+		b, e := fs.ReadFile(assets.FS, path)
+		if e == nil {
+			files[path] = b
+		}
+		return e
+	})
+	if err != nil {
+		return nil, err
+	}
+	protected := make(map[string]bool, len(files))
+	for name := range files {
+		protected[name] = true
+	}
+	for _, key := range inv.Keys {
+		p := inv.Pages[key]
+		files[key] = []byte(p.Markdown)
+		for _, ref := range workspace.References(p.Markdown) {
+			target, _, e := inv.Resolve(key, ref.Target)
+			if e != nil {
+				return nil, e
+			}
+			if target == "" {
+				continue
+			}
+			if _, ok := inv.Pages[target]; ok {
+				continue
+			}
+			src, e := inv.Source(target)
+			if e != nil {
+				return nil, e
+			}
+			info, e := os.Stat(src)
+			if e != nil || !info.Mode().IsRegular() {
+				continue
+			}
+			if e := checkActiveResource(c, src, target); e != nil {
+				return nil, e
+			}
+			b, e := os.ReadFile(src)
+			if e != nil {
+				return nil, e
+			}
+			if strings.EqualFold(filepath.Ext(src), ".svg") {
+				if e := safeSVG(b); e != nil {
+					return nil, fmt.Errorf("%s: %w", target, e)
+				}
+			}
+			if protected[target] {
+				return nil, fmt.Errorf("linked file %s collides with generated site file", target)
+			}
+			files[target] = b
+		}
+	}
+	return files, nil
+}
 func BuildSite(inv *workspace.Inventory) (string, error) {
 	c := inv.Config
+	files, err := siteFiles(inv)
+	if err != nil {
+		return "", err
+	}
 	site, err := c.WritablePath(c.Output.Site)
 	if err != nil {
 		return "", err
@@ -395,63 +595,10 @@ func BuildSite(inv *workspace.Inventory) (string, error) {
 		}
 		return os.WriteFile(target, data, 0644)
 	}
-	if err := write("index.html", []byte(LiveHTML(c, false))); err != nil {
-		return "", err
-	}
-	if err := write("_sidebar.md", []byte(workspace.Sidebar(inv.Nav()))); err != nil {
-		return "", err
-	}
-	if err := write("_kb/live.css", []byte(webFile("live.css"))); err != nil {
-		return "", err
-	}
-	err = fs.WalkDir(assets.FS, "vendor", func(path string, d fs.DirEntry, e error) error {
-		if e != nil {
-			return e
-		}
-		if d.IsDir() {
-			return nil
-		}
-		b, e := fs.ReadFile(assets.FS, path)
-		if e != nil {
-			return e
-		}
-		return write(path, b)
-	})
-	if err != nil {
-		return "", err
-	}
-	for _, key := range inv.Keys {
-		p := inv.Pages[key]
-		if err := write(key, []byte(p.Markdown)); err != nil {
+	for name, data := range files {
+		if err := write(name, data); err != nil {
 			return "", err
 		}
-		for _, ref := range workspace.References(p.Markdown) {
-			target, _, e := inv.Resolve(key, ref.Target)
-			if e != nil || target == "" {
-				continue
-			}
-			if _, ok := inv.Pages[target]; ok {
-				continue
-			}
-			src, e := inv.Source(target)
-			if e != nil {
-				continue
-			}
-			info, e := os.Lstat(src)
-			if e != nil || !info.Mode().IsRegular() {
-				continue
-			}
-			b, e := os.ReadFile(src)
-			if e != nil {
-				return "", e
-			}
-			if e := write(target, b); e != nil {
-				return "", e
-			}
-		}
-	}
-	if err := write(".kb-generated", []byte("kb generated site\n")); err != nil {
-		return "", err
 	}
 	if info, e := os.Lstat(site); e == nil {
 		if !info.IsDir() {

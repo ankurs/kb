@@ -109,3 +109,32 @@ func TestPublishAndSyncGlobalOverrides(t *testing.T) {
 		t.Fatalf("config: %+v", c)
 	}
 }
+
+func TestRenderTrustPrecedenceAndReadableSymlinks(t *testing.T) {
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, "kb.yaml"), []byte("version: 1\nid: demo\nrender: {trust_html: false}\n"), 0644)
+	global := filepath.Join(t.TempDir(), "global.yaml")
+	os.WriteFile(global, []byte("defaults:\n  render: {trust_html: true}\nworkspaces:\n  demo:\n    render: {trust_html: false}\n"), 0644)
+	c, err := Load(root, global)
+	if err != nil || c.Render.TrustHTML {
+		t.Fatalf("workspace override: %+v, %v", c.Render, err)
+	}
+	os.WriteFile(global, []byte("defaults:\n  render: {trust_html: true}\n"), 0644)
+	c, err = Load(root, global)
+	if err != nil || !c.Render.TrustHTML {
+		t.Fatalf("global override: %+v, %v", c.Render, err)
+	}
+	os.Symlink(root, filepath.Join(root, "inside"))
+	if _, err := c.ReadablePath("inside/kb.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	os.Symlink(t.TempDir(), filepath.Join(root, "outside"))
+	if _, err := c.ReadablePath("outside/secret.txt"); err == nil {
+		t.Fatal("read escaped workspace")
+	}
+	os.MkdirAll(filepath.Join(root, ".kb"), 0755)
+	os.Symlink(t.TempDir(), filepath.Join(root, ".kb", "snapshots"))
+	if _, err := c.WritablePath(".kb/snapshots"); err == nil {
+		t.Fatal("wrote through snapshot symlink")
+	}
+}

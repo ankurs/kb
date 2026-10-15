@@ -99,6 +99,8 @@ each top-level folder to `.kb/snapshots`. The static site needs an HTTP server;
 the bundles open directly through `file://`. Output paths are configurable.
 Images referenced by Markdown are embedded in the bundles. Links to other local
 files resolve relative to the bundle and require those files to be present.
+In the default safe mode, links to active files such as HTML, scripts, and
+stylesheets are errors rather than files served or copied into the site.
 
 `kb publish` builds a separate distribution without running `kb build` or
 `kb sync`. By default it writes `dist/wiki.html` and one focused HTML file per
@@ -142,6 +144,8 @@ navigation:
 check:
   exclude: ['**/docs/**']
   warn_missing: ['handbook/**']
+render:
+  trust_html: false  # set true only for fully trusted authors
 output:
   site: .kb/site
   bundles: .kb/snapshots
@@ -164,6 +168,16 @@ server:
   port: 3000
 ```
 
+Rendered Markdown is sanitized by default in the served, static, and single-file
+viewers. This keeps ordinary inline HTML (such as `<br>` and tables), but
+removes scripts, event handlers, and unsafe URLs. Mermaid uses strict security
+mode. SVG files linked by pages must use safe drawing elements and attributes.
+Set `render.trust_html: true` only if every note author is trusted: it restores
+raw HTML in both viewers and permits linked active files; it must **not** be
+used for untrusted notes. SVG assets are still validated in trusted mode. This
+setting follows the normal repository → user-global precedence. Marked itself
+does not sanitize HTML; the bundled DOMPurify runtime does.
+
 `exclude` replaces the default exclusion list when specified. `check.exclude`
 omits pages from validation while leaving them available for navigation and
 bundling; `check.warn_missing` reports missing links as warnings for matching
@@ -175,6 +189,8 @@ folders and root pages are included. When either is set, root pages are omitted
 unless `publish.root: true`. `publish.names` renames focused HTML files, and
 `publish.wiki` names the combined file. The equivalent command-line overrides
 are `--include`, `--exclude`, `--root-pages`, `--wiki`, and `--output`.
+Publishing validates only selected pages and their linked resources; an
+excluded unavailable mount does not block publication of other folders.
 
 Mounts expose another Markdown tree under a named path. Absolute Markdown links
 within a mount resolve from that mount's root. If a mount is unavailable, its
@@ -224,10 +240,6 @@ CI runs on pushes, pull requests, and manual dispatch on macOS and Linux. It
 checks formatting and dependencies, runs `go vet` and race-enabled tests, builds
 the CLI, and checks, builds, and verifies the sample workspace. Version tags
 matching `v*` create macOS and Linux release archives with SHA-256 checksums.
-
-## Future plans
-
-See [future.md](future.md).
 
 ## Development
 

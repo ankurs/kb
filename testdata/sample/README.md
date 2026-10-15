@@ -9,6 +9,29 @@ A local, fictional knowledge base for a 30-day borrowing pilot, **11 September�
 - [Tool Library Pilot](tool-library/README.md) — current state, policy, decisions, actions, and dated evidence.
 - [Volunteer Handbook](handbook/README.md) — a mounted, reusable desk procedure with a diagram.
 
+## Workspace configuration
+
+The checked-in [kb.yaml](kb.yaml) makes this directory a `kb` workspace. Its
+`version`, `id`, and `name` identify the example and label its viewers. The
+`handbook` mount presents Markdown from `reference/` under `handbook/` in the
+wiki. If that directory is temporarily unavailable, a previously built
+`.kb/snapshots/handbook.html` supplies its pages for builds and publishing;
+build that snapshot while the mount is present before relying on the fallback.
+
+`navigation.overrides` labels the pilot section **Tool Library Pilot** and
+places it first. `render.trust_html: false` explicitly keeps the default safe
+rendering behavior: the viewers sanitize Markdown HTML, Mermaid runs in strict
+mode, active linked files are rejected, and unsafe SVG assets are rejected. Do
+not enable `trust_html` for notes from untrusted authors.
+
+`output` places the generated site in `.kb/site/` and offline HTML snapshots
+in `.kb/snapshots/`. Separately, `publish` writes `dist/wiki.html` plus focused
+HTML files, renaming the `tool-library` bundle to `borrowing-pilot.html`.
+`sync.command` copies an **already published** `dist/` into the local
+`.kb/mirror/`; neither `kb build` nor `kb publish` runs sync automatically.
+The remaining settings use built-in defaults, including the local-only server,
+`inbox.md` and `.templates/` for capture, and `.qmd/` for optional qmd search.
+
 ## Feature map
 
 | Capability | Where to see it | Try it |

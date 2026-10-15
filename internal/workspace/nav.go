@@ -1,6 +1,8 @@
 package workspace
 
 import (
+	"html"
+	"net/url"
 	"path"
 	"regexp"
 	"sort"
@@ -260,11 +262,15 @@ func Sidebar(root *Node) string {
 	var walk func(*Node, int)
 	walk = func(n *Node, level int) {
 		if n.Path != "" {
-			b.WriteString(strings.Repeat("  ", level) + "- [" + strings.ReplaceAll(n.Name, "]", "\\]") + "](/" + n.Path + ")\n")
+			parts := strings.Split(n.Path, "/")
+			for idx := range parts {
+				parts[idx] = url.PathEscape(parts[idx])
+			}
+			b.WriteString(strings.Repeat("  ", level) + "- [" + strings.ReplaceAll(html.EscapeString(n.Name), "]", "\\]") + "](/" + strings.Join(parts, "/") + ")\n")
 			return
 		}
 		if n != root {
-			b.WriteString(strings.Repeat("  ", level) + "- " + n.Name + "\n")
+			b.WriteString(strings.Repeat("  ", level) + "- " + html.EscapeString(n.Name) + "\n")
 			level++
 		}
 		for _, child := range n.Children {

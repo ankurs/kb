@@ -126,7 +126,7 @@ func Load(c config.Workspace) (*Inventory, error) {
 		return nil, err
 	}
 	for _, m := range c.Mounts {
-		dir, err := c.Path(m.Path)
+		dir, err := c.ReadablePath(m.Path)
 		if err != nil {
 			return nil, err
 		}

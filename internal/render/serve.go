@@ -77,7 +77,7 @@ func Handler(c config.Workspace) http.Handler {
 			http.NotFound(w, r)
 			return
 		}
-		info, err := os.Lstat(path)
+		info, err := os.Stat(path)
 		if err != nil || !info.Mode().IsRegular() {
 			http.NotFound(w, r)
 			return
@@ -100,6 +100,18 @@ func Handler(c config.Workspace) http.Handler {
 			http.NotFound(w, r)
 			return
 		}
+		if err := checkActiveResource(c, path, key); err != nil {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		if strings.EqualFold(filepath.Ext(path), ".svg") {
+			b, err := os.ReadFile(path)
+			if err != nil || safeSVG(b) != nil {
+				http.Error(w, "unsafe SVG", http.StatusForbidden)
+				return
+			}
+		}
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		http.ServeFile(w, r, path)
 	})
 }

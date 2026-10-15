@@ -34,6 +34,10 @@
       "bundle/marked-4.3.0.min.js"
     ]
   },
+  "dompurify": {
+    "version": "3.2.6",
+    "files": ["bundle/purify-3.2.6.min.js"]
+  },
   "highlight.js": {
     "version": "11.9.0",
     "files": [

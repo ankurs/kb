@@ -22,6 +22,7 @@ type Workspace struct {
 	Mounts     []Mount    `yaml:"mounts"`
 	Navigation Navigation `yaml:"navigation"`
 	Check      Check      `yaml:"check"`
+	Render     Render     `yaml:"render"`
 	Output     Output     `yaml:"output"`
 	Capture    Capture    `yaml:"capture"`
 	Search     Search     `yaml:"search"`
@@ -46,6 +47,9 @@ type NavOverride struct {
 type Check struct {
 	Exclude     []string `yaml:"exclude"`
 	WarnMissing []string `yaml:"warn_missing"`
+}
+type Render struct {
+	TrustHTML bool `yaml:"trust_html"`
 }
 type Output struct {
 	Site    string `yaml:"site"`
@@ -273,10 +277,56 @@ func (c Workspace) Path(rel string) (string, error) {
 	return filepath.Join(c.Root, rel), nil
 }
 
+func inside(root, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+// ReadablePath resolves symlinks in the source and its parents before a read.
+// A missing leaf is allowed for ordinary missing-link diagnostics.
+func (c Workspace) ReadablePath(rel string) (string, error) {
+	target, err := c.Path(rel)
+	if err != nil {
+		return "", err
+	}
+	root, err := filepath.EvalSymlinks(c.Root)
+	if err != nil {
+		return "", err
+	}
+	ancestor := target
+	for {
+		if _, err := os.Lstat(ancestor); err == nil {
+			break
+		} else if !os.IsNotExist(err) {
+			return "", err
+		}
+		next := filepath.Dir(ancestor)
+		if next == ancestor {
+			return "", errors.New("cannot resolve source")
+		}
+		ancestor = next
+	}
+	resolved, err := filepath.EvalSymlinks(ancestor)
+	if err != nil {
+		return "", fmt.Errorf("invalid source symlink %s: %w", rel, err)
+	}
+	if !inside(root, resolved) {
+		return "", fmt.Errorf("source escapes content root: %s", rel)
+	}
+	return target, nil
+}
+
 // WritablePath rejects destinations with parent symlinks outside the content root.
 func (c Workspace) WritablePath(rel string) (string, error) {
 	target, err := c.Path(rel)
 	if err != nil {
+		return "", err
+	}
+	if info, err := os.Lstat(target); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 {
+			return "", fmt.Errorf("destination is a symlink: %s", rel)
+		}
+	} else if !os.IsNotExist(err) {
 		return "", err
 	}
 	root, err := filepath.EvalSymlinks(c.Root)
@@ -300,8 +350,7 @@ func (c Workspace) WritablePath(rel string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	inside, err := filepath.Rel(root, resolved)
-	if err != nil || inside == ".." || strings.HasPrefix(inside, ".."+string(filepath.Separator)) {
+	if !inside(root, resolved) {
 		return "", fmt.Errorf("destination escapes content root: %s", rel)
 	}
 	return target, nil

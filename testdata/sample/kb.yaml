@@ -8,6 +8,8 @@ mounts:
 navigation:
   overrides:
     tool-library: {title: Tool Library Pilot, order: 1}
+render:
+  trust_html: false
 output:
   site: .kb/site
   bundles: .kb/snapshots

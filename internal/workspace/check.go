@@ -98,7 +98,15 @@ func (i *Inventory) Check() []Issue {
 				issues = append(issues, Issue{key, ref.Line, err.Error(), false})
 				continue
 			}
-			if info, e := os.Stat(file); e == nil && !info.IsDir() {
+			if info, e := os.Stat(file); e == nil && info.Mode().IsRegular() {
+				if !i.Config.Render.TrustHTML {
+					active, e := ActiveLinkedFile(file)
+					if e != nil {
+						issues = append(issues, Issue{key, ref.Line, e.Error(), false})
+					} else if active {
+						issues = append(issues, Issue{key, ref.Line, "active linked file requires render.trust_html: true: " + target, false})
+					}
+				}
 				continue
 			}
 			warning := matching(i.Config.Check.WarnMissing, key)
@@ -118,11 +126,11 @@ func (i *Inventory) Source(key string) (string, error) {
 	}
 	for _, mount := range i.Config.Mounts {
 		if key == mount.Name {
-			return i.Config.Path(mount.Path)
+			return i.Config.ReadablePath(mount.Path)
 		}
 		if strings.HasPrefix(key, mount.Name+"/") {
-			return i.Config.Path(filepath.Join(mount.Path, filepath.FromSlash(strings.TrimPrefix(key, mount.Name+"/"))))
+			return i.Config.ReadablePath(filepath.Join(mount.Path, filepath.FromSlash(strings.TrimPrefix(key, mount.Name+"/"))))
 		}
 	}
-	return i.Config.Path(filepath.FromSlash(key))
+	return i.Config.ReadablePath(filepath.FromSlash(key))
 }
