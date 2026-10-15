@@ -53,7 +53,7 @@ Use `-v` or `--verbose` with any command to print progress diagnostics to
 stderr, for example `kb -v build` or `kb check --verbose`. Standard output
 keeps the same format.
 
-## Try a complete workflow
+## Build the example wiki
 
 [`testdata/sample`](testdata/sample/README.md) is a fictional tool-lending
 pilot used every day from **11 September to 10 October 2026**. Thirty dated
@@ -62,6 +62,30 @@ pilot used every day from **11 September to 10 October 2026**. Thirty dated
 a source register, and a current policy show the capture → evidence → decision
 → status loop. It also demonstrates Mermaid and SVG diagrams, a mounted
 handbook, qmd collections, offline builds, publishing, and a safe local sync.
+
+From the repository root, build it in a disposable directory so the checked-in
+Markdown stays untouched:
+
+```sh
+demo=$(mktemp -d)
+rsync -a --exclude '.kb/' --exclude 'dist/' --exclude '.qmd/index.sqlite*' testdata/sample/ "$demo/"
+go run ./cmd/kb --workspace "$demo" check
+go run ./cmd/kb --workspace "$demo" build
+go run ./cmd/kb --workspace "$demo" verify
+go run ./cmd/kb --workspace "$demo" publish
+# Open "$demo/dist/wiki.html" in a browser.
+```
+
+The build creates `.kb/site` and `.kb/snapshots/`; publish creates the
+standalone `dist/wiki.html`. For a no-build preview, download the
+[prebuilt example](examples/wiki.html) and open it locally. Its notes are
+fictional, images are embedded, and non-image source files are not included.
+All three viewers share a top bar, responsive collapsible navigation, active
+page highlighting, and ranked search over page titles and content. Press
+Cmd/Ctrl+K to search and Escape to return to the navigation. This browser
+search works offline and is separate from optional qmd retrieval.
+
+## Try a complete workflow
 
 From this source directory, with `kb` installed:
 

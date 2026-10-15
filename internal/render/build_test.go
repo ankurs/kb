@@ -163,12 +163,22 @@ func TestLiveSidebarConfiguration(t *testing.T) {
 	handler := Handler(c)
 	html := httptest.NewRecorder()
 	handler.ServeHTTP(html, httptest.NewRequest("GET", "/", nil))
-	for _, part := range []string{"loadSidebar:true", "sidebarDisplayLevel:1", "'/.*/_sidebar.md':'/_sidebar.md'", "plugins:[function(hook,vm){hook.beforeEach(function(md){"} {
+	for _, part := range []string{`src="/_kb/live.js"`, `src="/_kb/ui.js"`, `id="viewer-config"`, `id="kb-sidebar"`, `id="menu-toggle"`} {
 		if !bytes.Contains(html.Body.Bytes(), []byte(part)) {
 			t.Fatalf("missing %q in served viewer", part)
 		}
 	}
-	if bytes.Contains(html.Body.Bytes(), []byte("hook.beforeEach(function(md,vm)")) {
+	if !bytes.Contains(html.Body.Bytes(), []byte("new EventSource('/_kb/events')")) {
+		t.Fatal("served viewer lacks automatic reload listener")
+	}
+	liveScript := httptest.NewRecorder()
+	handler.ServeHTTP(liveScript, httptest.NewRequest("GET", "/_kb/live.js", nil))
+	for _, part := range []string{"loadSidebar:true", "'/.*/_sidebar.md':'/_sidebar.md'", "hook.beforeEach(function(md){", "DOMPurify.sanitize(html)"} {
+		if !bytes.Contains(liveScript.Body.Bytes(), []byte(part)) {
+			t.Fatalf("missing %q in live Docsify configuration", part)
+		}
+	}
+	if bytes.Contains(liveScript.Body.Bytes(), []byte("hook.beforeEach(function(md,vm)")) {
 		t.Fatal("Docsify treats two-argument beforeEach hooks as async; rendering would stall")
 	}
 	sidebar := httptest.NewRecorder()
@@ -180,6 +190,11 @@ func TestLiveSidebarConfiguration(t *testing.T) {
 	handler.ServeHTTP(page, httptest.NewRequest("GET", "/tool-library/kb/borrowing-policy.md", nil))
 	if page.Code != 200 {
 		t.Fatalf("nested page status=%d", page.Code)
+	}
+	index := httptest.NewRecorder()
+	handler.ServeHTTP(index, httptest.NewRequest("GET", "/_kb/viewer-data.json", nil))
+	if index.Code != 200 || !strings.Contains(index.Header().Get("Content-Type"), "application/json") || !bytes.Contains(index.Body.Bytes(), []byte(`"tool-library/kb/borrowing-policy.md"`)) {
+		t.Fatalf("live search data status=%d bytes=%d", index.Code, index.Body.Len())
 	}
 }
 
@@ -208,6 +223,12 @@ func TestLiveThemeParity(t *testing.T) {
 	if !bytes.Equal(built, response.Body.Bytes()) {
 		t.Fatal("built and served themes differ")
 	}
+	uiCSS := httptest.NewRecorder()
+	h.ServeHTTP(uiCSS, httptest.NewRequest("GET", "/_kb/ui.css", nil))
+	staticCSS, err := os.ReadFile(filepath.Join(result.Site, "_kb", "ui.css"))
+	if err != nil || !bytes.Equal(staticCSS, uiCSS.Body.Bytes()) {
+		t.Fatalf("shared UI CSS differs between site and server: %v", err)
+	}
 }
 
 func TestVerifyWholeSite(t *testing.T) {
@@ -221,6 +242,7 @@ func TestVerifyWholeSite(t *testing.T) {
 	}{
 		{"linked CSV", filepath.Join(c.Root, "tool-library/sources/loans-2026-10-10.csv"), []byte("\nnew record\n")},
 		{"viewer CSS", filepath.Join(c.Root, ".kb/site/_kb/live.css"), []byte("\n/* modified */\n")},
+		{"search data", filepath.Join(c.Root, ".kb/site/_kb/viewer-data.json"), []byte("\n{}")},
 		{"copied asset", filepath.Join(c.Root, ".kb/site/handbook/check-in/check-in-flow.svg"), []byte("\n<!-- modified -->\n")},
 	}
 	for _, tc := range checks {

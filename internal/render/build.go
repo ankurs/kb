@@ -132,12 +132,12 @@ func Bundle(data BundleData) ([]byte, error) {
 		return nil, err
 	}
 	var b strings.Builder
-	b.WriteString("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + html.EscapeString(data.Title) + "</title><style>" + webFile("bundle.css") + "</style>")
+	b.WriteString("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + html.EscapeString(data.Title) + "</title><style>" + webFile("ui.css") + webFile("bundle.css") + "</style>")
 	css, err := asset("bundle/highlight-github-dark-11.9.0.min.css")
 	if err != nil {
 		return nil, err
 	}
-	b.WriteString("<style>" + string(css) + "</style></head><body><aside><h2>" + html.EscapeString(data.Title) + "</h2><input id=\"search\" type=\"search\" placeholder=\"Search pages and content\" aria-label=\"Search\"><div id=\"results\"></div><nav id=\"nav\"></nav></aside><main><article id=\"article\"></article></main><script type=\"application/json\" id=\"page-data\">")
+	b.WriteString("<style>" + string(css) + "</style></head><body class=\"kb-viewer kb-bundle\"><header id=\"topbar\"><button id=\"menu-toggle\" type=\"button\" aria-label=\"Toggle sidebar\" aria-controls=\"kb-sidebar\" aria-expanded=\"false\">&#9776;</button><span class=\"brand\">" + html.EscapeString(data.Title) + "</span><span class=\"spacer\"></span><span class=\"tag\">offline bundle</span></header><aside id=\"kb-sidebar\"><input id=\"filter\" type=\"search\" placeholder=\"Search pages and content…\" aria-label=\"Search pages and content\"><div id=\"results\" aria-live=\"polite\" hidden></div><div id=\"nav\" role=\"navigation\" aria-label=\"Pages\"></div></aside><main id=\"viewer-main\"><article id=\"article\"></article></main><script type=\"application/json\" id=\"page-data\">")
 	b.Write(jsonData)
 	b.WriteString("</script>")
 	for _, name := range []string{"bundle/marked-4.3.0.min.js", "bundle/purify-3.2.6.min.js", "mermaid/mermaid-11.17.2.min.js", "bundle/highlight-11.9.0.min.js"} {
@@ -147,7 +147,7 @@ func Bundle(data BundleData) ([]byte, error) {
 		}
 		b.WriteString("<script>" + script(src) + "</script>")
 	}
-	b.WriteString("<script>mermaid.initialize({startOnLoad:false,theme:'dark',securityLevel:'strict'});</script><script>" + webFile("bundle.js") + "</script></body></html>")
+	b.WriteString("<script>mermaid.initialize({startOnLoad:false,theme:'dark',securityLevel:'strict'});</script><script>" + script([]byte(webFile("ui.js"))) + "</script><script>" + script([]byte(webFile("bundle.js"))) + "</script></body></html>")
 	return []byte(b.String()), nil
 }
 func focusedNav(root *workspace.Node, prefix string) *workspace.Node {
@@ -494,6 +494,17 @@ func navFromPages(pages map[string]string, c config.Workspace) *workspace.Node {
 	sort.Strings(inv.Keys)
 	return inv.Nav()
 }
+func viewerData(inv *workspace.Inventory) ([]byte, error) {
+	pages := make(map[string]string, len(inv.Keys))
+	for _, key := range inv.Keys {
+		pages[key] = inv.Pages[key].Markdown
+	}
+	return json.Marshal(struct {
+		Title string            `json:"title"`
+		Pages map[string]string `json:"pages"`
+		Nav   *workspace.Node   `json:"nav"`
+	}{inv.Config.Name, pages, inv.Nav()})
+}
 
 // siteFiles is the single inventory for build and read-only verification.
 func siteFiles(inv *workspace.Inventory) (map[string][]byte, error) {
@@ -502,9 +513,17 @@ func siteFiles(inv *workspace.Inventory) (map[string][]byte, error) {
 		"index.html":    []byte(LiveHTML(c, false)),
 		"_sidebar.md":   []byte(workspace.Sidebar(inv.Nav())),
 		"_kb/live.css":  []byte(webFile("live.css")),
+		"_kb/ui.css":    []byte(webFile("ui.css")),
+		"_kb/ui.js":     []byte(webFile("ui.js")),
+		"_kb/live.js":   []byte(webFile("live.js")),
 		".kb-generated": []byte("kb generated site\n"),
 	}
-	err := fs.WalkDir(assets.FS, "vendor", func(path string, d fs.DirEntry, e error) error {
+	index, err := viewerData(inv)
+	if err != nil {
+		return nil, err
+	}
+	files["_kb/viewer-data.json"] = index
+	err = fs.WalkDir(assets.FS, "vendor", func(path string, d fs.DirEntry, e error) error {
 		if e != nil {
 			return e
 		}

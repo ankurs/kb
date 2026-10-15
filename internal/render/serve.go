@@ -26,10 +26,13 @@ func Handler(c config.Workspace) http.Handler {
 			events(w, r, c)
 			return
 		}
-		if r.URL.Path == "/_kb/live.css" {
-			w.Header().Set("Content-Type", "text/css; charset=utf-8")
-			io.WriteString(w, webFile("live.css"))
-			return
+		for _, name := range []string{"live.css", "ui.css", "ui.js", "live.js"} {
+			if r.URL.Path == "/_kb/"+name {
+				w.Header().Set("X-Content-Type-Options", "nosniff")
+				w.Header().Set("Content-Type", mimeType(name))
+				io.WriteString(w, webFile(name))
+				return
+			}
 		}
 		if strings.HasPrefix(r.URL.Path, "/vendor/") {
 			name := strings.TrimPrefix(r.URL.Path, "/")
@@ -60,6 +63,18 @@ func Handler(c config.Workspace) http.Handler {
 			w.Header().Set("Cache-Control", "no-store")
 			w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
 			io.WriteString(w, workspace.Sidebar(inv.Nav()))
+			return
+		}
+		if r.URL.Path == "/_kb/viewer-data.json" {
+			b, err := viewerData(inv)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Write(b)
 			return
 		}
 		key := strings.TrimPrefix(r.URL.Path, "/")

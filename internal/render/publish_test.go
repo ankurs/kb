@@ -312,3 +312,22 @@ func TestLegacyMountRelativeFallback(t *testing.T) {
 		t.Fatalf("legacy fallback not normalized: %+v", wiki.Assets)
 	}
 }
+
+func TestCommittedExampleMatchesSamplePublish(t *testing.T) {
+	c := testWorkspace(t)
+	r, err := Publish(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := os.ReadFile(filepath.Join(r.Dir, "wiki.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	example, err := os.ReadFile(filepath.Join("..", "..", "examples", "wiki.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(actual, example) {
+		t.Fatal("examples/wiki.html is stale; regenerate it from the sample publish output")
+	}
+}

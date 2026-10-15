@@ -1,0 +1,2 @@
+# Offline examples embed pinned third-party scripts verbatim, including whitespace.
+examples/*.html whitespace=-trailing-space

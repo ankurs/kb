@@ -1,1 +1,14 @@
-:root{color-scheme:dark;font:15px system-ui,sans-serif;background:#0d1117;color:#e6edf3}*{box-sizing:border-box}body{margin:0;display:flex}aside{width:310px;max-width:40vw;height:100vh;overflow:auto;border-right:1px solid #30363d;padding:20px;position:sticky;top:0}main{flex:1;min-width:0;max-width:1080px;padding:28px 48px}a{color:#79c0ff}input{width:100%;padding:9px;background:#161b22;color:inherit;border:1px solid #30363d;border-radius:6px}ul{padding-left:18px}li{line-height:1.6}aside a{text-decoration:none}aside a:hover{text-decoration:underline}#results{max-height:45vh;overflow:auto}article{line-height:1.65;overflow-wrap:anywhere}article img,article svg{max-width:100%;height:auto}article pre{overflow:auto;padding:14px;background:#161b22;border-radius:6px}article code{background:#161b22}article table{border-collapse:collapse;display:block;overflow:auto}article th,article td{border:1px solid #30363d;padding:6px 10px}article blockquote{border-left:3px solid #30363d;padding-left:1em;color:#9da7b3}.mermaid{text-align:center}@media(max-width:700px){body{display:block}aside{position:static;width:100%;max-width:none;height:auto;border-right:0;border-bottom:1px solid #30363d}main{padding:16px}}
+#article{line-height:1.65;overflow-wrap:anywhere}
+#article a{color:var(--kb-link)}
+#article h1,#article h2,#article h3,#article h4,#article h5,#article h6{color:var(--kb-heading);line-height:1.25}
+#article h1{font-size:2em;border-bottom:1px solid var(--kb-border);padding-bottom:.3em}
+#article h2{font-size:1.5em;border-bottom:1px solid var(--kb-border);padding-bottom:.3em}
+#article img,#article svg{max-width:100%;height:auto}
+#article pre{overflow:auto;padding:16px;background:var(--kb-panel);border:1px solid var(--kb-border);border-radius:8px}
+#article code{background:var(--kb-panel);border-radius:4px}
+#article table{border-collapse:collapse;display:block;overflow:auto;max-width:100%}
+#article th,#article td{border:1px solid var(--kb-border);padding:6px 10px}
+#article th{background:var(--kb-panel)}
+#article tr:nth-child(2n){background:#161b2288}
+#article blockquote{border-left:3px solid var(--kb-border);padding-left:1em;color:var(--kb-muted)}
+#article .mermaid{text-align:center;margin:1em 0}
