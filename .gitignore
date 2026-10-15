@@ -6,3 +6,5 @@ coverage.out
 /testdata/sample/.qmd/index.sqlite*
 /testdata/sample/.qmd/trusted.json
 /testdata/sample/dist/
+/site/.kb/
+/site/dist/
