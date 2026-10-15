@@ -45,7 +45,8 @@ three share the same navigation, search, and safe rendering rules.
 
 By default, rendered Markdown is sanitized, Mermaid runs in strict mode, SVGs
 are validated, and links to active files are rejected. `render.trust_html:
-true` lifts these limits for fully trusted authors only. See the
+true` allows raw HTML and links to active files, for fully trusted authors
+only; Mermaid still runs in strict mode and SVGs are still validated. See the
 [security model](../reference/security.md).
 
 ## Configuration layers
