@@ -36,9 +36,10 @@ search your notes locally through qmd's MCP server. See
 
 ## Can I host the wiki publicly?
 
-Yes. Upload the `kb build` site to any static host, served from the root of a
-domain or subdomain. See [Automating checks](guides/automation.md#hosting-the-static-site).
-This documentation is hosted that way.
+Yes. Upload the `kb build` site to any static host, at the root of a domain
+or under a path such as `example.github.io/notes/`. See
+[Automating checks](guides/automation.md#hosting-the-static-site). This
+documentation is hosted that way.
 
 ## Is it safe to open a stranger's wiki?
 

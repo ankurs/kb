@@ -4,6 +4,7 @@ const mounts=config.mounts||[],trustHTML=!!config.trustHTML;
 mermaid.initialize({startOnLoad:false,theme:'dark',securityLevel:'strict'});
 window.$docsify={
   name:config.name,homepage:'README.md',loadSidebar:true,
+  basePath:location.pathname.replace(/[^/]*$/,''),
   alias:{'/.*/_sidebar.md':'/_sidebar.md'},relativePath:true,subMaxLevel:3,
   markdown:{renderer:{code:function(code,lang){
     if(lang==='mermaid'){
@@ -31,7 +32,7 @@ window.$docsify={
     })
   }]
 };
-fetch('/_kb/viewer-data.json',{cache:'no-store'}).then(response=>{
+fetch('_kb/viewer-data.json',{cache:'no-store'}).then(response=>{
   if(!response.ok)throw new Error('viewer data unavailable');return response.json()
 }).then(data=>KBUI.start(data)).catch(error=>{
   const results=document.getElementById('results');results.hidden=false;results.textContent=error.message

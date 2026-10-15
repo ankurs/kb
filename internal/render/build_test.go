@@ -158,17 +158,36 @@ func TestMountedAssetInSiteAndBundle(t *testing.T) {
 	}
 }
 
+// The static site must work when hosted under a subpath such as
+// https://user.github.io/repo/, so viewer URLs must not be root-absolute.
+func TestViewerUsesRelativePaths(t *testing.T) {
+	c := testWorkspace(t)
+	page := LiveHTML(c, true)
+	for _, bad := range []string{`src="/`, `href="/`, `EventSource('/`} {
+		if strings.Contains(page, bad) {
+			t.Fatalf("viewer HTML contains root-absolute reference %q", bad)
+		}
+	}
+	script := webFile("live.js")
+	if strings.Contains(script, "fetch('/") {
+		t.Fatal("live.js fetches viewer data from a root-absolute path")
+	}
+	if !strings.Contains(script, "basePath:location.pathname") {
+		t.Fatal("live.js does not set the Docsify basePath from the page location")
+	}
+}
+
 func TestLiveSidebarConfiguration(t *testing.T) {
 	c := testWorkspace(t)
 	handler := Handler(c)
 	html := httptest.NewRecorder()
 	handler.ServeHTTP(html, httptest.NewRequest("GET", "/", nil))
-	for _, part := range []string{`src="/_kb/live.js"`, `src="/_kb/ui.js"`, `id="viewer-config"`, `id="kb-sidebar"`, `id="menu-toggle"`} {
+	for _, part := range []string{`src="_kb/live.js"`, `src="_kb/ui.js"`, `id="viewer-config"`, `id="kb-sidebar"`, `id="menu-toggle"`} {
 		if !bytes.Contains(html.Body.Bytes(), []byte(part)) {
 			t.Fatalf("missing %q in served viewer", part)
 		}
 	}
-	if !bytes.Contains(html.Body.Bytes(), []byte("new EventSource('/_kb/events')")) {
+	if !bytes.Contains(html.Body.Bytes(), []byte("new EventSource('_kb/events')")) {
 		t.Fatal("served viewer lacks automatic reload listener")
 	}
 	liveScript := httptest.NewRecorder()
