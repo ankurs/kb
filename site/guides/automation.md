@@ -39,9 +39,9 @@ hide a stale commit.
 Cloudflare Pages, Netlify, or a plain web server. Upload the contents of
 `output.site` (default `.kb/site`).
 
-The site loads its assets from absolute paths, so serve it from the **root**
-of a domain or subdomain, such as `docs.example.com`, not from a subpath such
-as `example.com/docs/`.
+The site uses relative paths, so it works at the root of a domain, such as
+`docs.example.com`, or under a path, such as a GitHub Pages project site at
+`example.github.io/notes/`.
 
 For audiences that do not need a hosted site, attach the `kb publish` output
 instead: each HTML file works offline with no server at all.

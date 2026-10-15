@@ -22,7 +22,7 @@ kb build
 
 - **A static site** to `output.site` (default `.kb/site`): an `index.html`,
   your Markdown, linked resources, and the viewer assets. It must be served
-  over HTTP, from the root of a host or domain.
+  over HTTP, either at the root of a host or under a path.
 - **Snapshots** to `output.bundles` (default `.kb/snapshots`): `wiki.html`
   with every page, plus one bundle per top-level folder. Snapshots open
   directly through `file://`.
