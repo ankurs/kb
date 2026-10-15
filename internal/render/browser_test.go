@@ -25,6 +25,12 @@ func headlessBrowser(t *testing.T) string {
 	if name := os.Getenv("KB_BROWSER"); name != "" {
 		return name
 	}
+	// Hosted CI images may expose a browser executable that cannot start a
+	// headless session. Require an explicitly provisioned browser in CI rather
+	// than letting every browser test stall until its per-page timeout.
+	if os.Getenv("CI") != "" {
+		t.Skip("browser integration tests require an explicitly provisioned KB_BROWSER in CI")
+	}
 	for _, name := range []string{"chromium", "chromium-browser", "google-chrome"} {
 		if path, err := exec.LookPath(name); err == nil {
 			return path

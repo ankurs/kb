@@ -17,11 +17,11 @@ Use standard Go formatting (`gofmt`), tabs as produced by the formatter, short p
 
 ## Testing Guidelines
 
-Add focused regression tests for link resolution, mounts, security checks, publishing selection, and output staleness when changing those paths. Browser rendering tests use headless Chromium when available; set `KB_BROWSER` to a browser executable to run them explicitly. CI runs on macOS and Linux and also builds the CLI and checks the sample workspace.
+Add focused regression tests for link resolution, mounts, security checks, publishing selection, and output staleness when changing those paths. Browser rendering tests use headless Chromium when available; set `KB_BROWSER` explicitly in CI. CI runs on macOS and Linux and also builds the CLI and checks the sample workspace.
 
 ## Commit & Pull Request Guidelines
 
-No fixed commit-message convention exists. Use a concise imperative subject describing the change. In pull requests, explain the behavior and risk, note relevant issues, list tests run, and include screenshots for visible viewer changes.
+No fixed commit-message convention exists. Use a concise imperative subject. **Never commit or push until the user has reviewed the diff and explicitly approved it.** In pull requests, explain behavior and risk, note relevant issues and tests, and include screenshots for visible viewer changes.
 
 ## Security & Configuration
 
