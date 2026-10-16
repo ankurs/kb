@@ -8,6 +8,7 @@ navigation:
     start/install.md: {order: 2}
     start/README.md: {title: Quick start, order: 3}
     start/concepts.md: {order: 4}
+    start/example.md: {order: 5}
     guides: {title: Guides, order: 2}
     guides/capture.md: {order: 1}
     guides/viewing.md: {order: 2}
@@ -17,6 +18,11 @@ navigation:
     guides/mounts.md: {order: 6}
     guides/automation.md: {order: 7}
     reference: {title: Reference, order: 3}
+    reference/commands.md: {order: 1}
+    reference/configuration.md: {order: 2}
+    reference/security.md: {order: 3}
+    faq.md: {title: FAQ, order: 4}
+    contributing.md: {order: 5}
 render:
   trust_html: false
 output:

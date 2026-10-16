@@ -51,7 +51,7 @@ Change the template folder with `capture.templates`.
 
 ## A working loop
 
-The [example workspace](../example.md) demonstrates a loop that scales well:
+The [example workspace](../start/example.md) demonstrates a loop that scales well:
 
 1. **Capture** questions and observations as they happen.
 2. **Record evidence** in dated, append-only notes such as meetings or a

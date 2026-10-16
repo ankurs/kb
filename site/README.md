@@ -3,20 +3,11 @@
 **Offline-first Markdown knowledge bases.** `kb` is a single command-line tool
 that captures notes, checks links, searches your files, serves a browsable
 wiki, and packs the whole thing into HTML files that open anywhere, without a
-server, a CDN, or an account. Your Markdown stays the source of truth.
+server, a CDN, or an account. Your Markdown stays the source of truth; see
+[Why a folder of Markdown](start/why-markdown.md) for the case for plain files.
 
 > This site is itself a `kb` workspace: the `site/` folder of the repository,
 > built with `kb build`.
-
-## Why a folder of Markdown?
-
-Plain Markdown files are yours: they open in any editor, keep their history in
-git, sit beside the code they describe, work with tools like `grep` and
-backups, and can be read and edited directly by coding agents. What a plain
-folder lacks is navigation, link checking, search, and an easy way to share.
-`kb` adds those without changing the files. See
-[Why a folder of Markdown](start/why-markdown.md) for the full case, including
-when it is the wrong choice.
 
 ## Why kb
 
@@ -24,8 +15,9 @@ when it is the wrong choice.
   anchors, and pages without exactly one title, so a wiki stays navigable as
   it grows.
 - **Works offline.** Search, viewers, Mermaid diagrams, Excalidraw PNG
-  previews, and syntax highlighting ship inside the binary and generated HTML. Only content
-  your notes link to by URL, such as remote images, is fetched at view time.
+  previews, and syntax highlighting ship inside the binary and generated
+  HTML. Only content your notes link to by URL, such as remote images, is
+  fetched at view time.
 - **Portable output.** `kb publish` writes one self-contained `wiki.html`
   (plus one file per folder) that you can email, archive, or open from a USB
   stick.
@@ -39,7 +31,7 @@ when it is the wrong choice.
 ## Thirty-second tour
 
 ```sh
-go install github.com/ankurs/kb/cmd/kb@latest
+go install github.com/ankurs/kb/cmd/kb@latest  # needs Go 1.24+
 cd ~/notes
 kb init                        # create kb.yaml
 kb capture "Look into reminder timing"
@@ -50,15 +42,32 @@ kb publish                     # write dist/wiki.html
 
 ## Documentation
 
+**Get started**
+
 - [Why a folder of Markdown](start/why-markdown.md) — the case for plain files.
-- [Install](start/install.md) — Go install or prebuilt release archives.
+- [Install](start/install.md) — `go install`, release archives, or source.
 - [Quick start](start/README.md) — a first workspace in five minutes.
 - [Core concepts](start/concepts.md) — workspaces, pages, mounts, and outputs.
-- [Guides](guides/README.md) — capture, viewing, publishing, search, mounts.
-- [Command reference](reference/commands.md) — every command and flag.
-- [Configuration reference](reference/configuration.md) — every `kb.yaml` key.
+- [Example workspace](start/example.md) — a complete fictional wiki to explore.
+
+**Guides**
+
+- [Capture and review](guides/capture.md) — the inbox, templates, and review loop.
+- [Viewing and building](guides/viewing.md) — live viewer, static site, snapshots.
+- [Publishing and sync](guides/publishing.md) — single-file HTML distributions.
+- [Search](guides/search.md) — keyword, browser, and qmd hybrid search.
+- [Use with coding agents](guides/coding-agents.md) — agents, checks, and MCP search.
+- [Mounts](guides/mounts.md) — sharing a Markdown tree across workspaces.
+- [Automating checks](guides/automation.md) — hooks, CI, and hosting.
+
+**Reference**
+
+- [Commands](reference/commands.md) — every command and flag.
+- [Configuration](reference/configuration.md) — every `kb.yaml` key.
 - [Security model](reference/security.md) — what safe mode protects against.
-- [Example workspace](example.md) — a complete fictional wiki to explore.
+
+**Project**
+
 - [FAQ](faq.md) — common questions and comparisons.
 - [Contributing](contributing.md) — build, test, and send changes.
 
