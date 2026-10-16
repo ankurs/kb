@@ -21,9 +21,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with: {go-version: '1.24'}
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with: {go-version: stable}
       - run: go install github.com/ankurs/kb/cmd/kb@latest
       - run: kb check
       - run: kb verify   # only if you commit both .kb/site and .kb/snapshots
