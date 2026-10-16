@@ -15,10 +15,11 @@ import (
 //go:embed web/*
 var web embed.FS
 
-func asset(name string) ([]byte, error) { return fs.ReadFile(assets.FS, "vendor/"+name) }
-func webFile(name string) string        { b, _ := web.ReadFile("web/" + name); return string(b) }
-func script(b []byte) string            { return strings.ReplaceAll(string(b), "</script", "<\\/script") }
-func LiveHTML(c config.Workspace, live bool) string {
+func asset(name string) ([]byte, error)             { return fs.ReadFile(assets.FS, "vendor/"+name) }
+func webFile(name string) string                    { b, _ := web.ReadFile("web/" + name); return string(b) }
+func script(b []byte) string                        { return strings.ReplaceAll(string(b), "</script", "<\\/script") }
+func LiveHTML(c config.Workspace, live bool) string { return liveHTML(c, live, false) }
+func liveHTML(c config.Workspace, live, semanticSearch bool) string {
 	mounts := []string{}
 	for _, m := range c.Mounts {
 		mounts = append(mounts, m.Name)
@@ -28,7 +29,8 @@ func LiveHTML(c config.Workspace, live bool) string {
 		Mounts              []string `json:"mounts"`
 		TrustHTML           bool     `json:"trustHTML"`
 		ExternalLinksNewTab bool     `json:"externalLinksNewTab"`
-	}{c.Name, mounts, c.Render.TrustHTML, c.Render.OpenExternalLinksNewTab()})
+		SemanticSearch      bool     `json:"semanticSearch,omitempty"`
+	}{c.Name, mounts, c.Render.TrustHTML, c.Render.OpenExternalLinksNewTab(), semanticSearch})
 	reload := ""
 	if live {
 		reload = `<script>let source=new EventSource('_kb/events');source.onmessage=()=>location.reload()</script>`

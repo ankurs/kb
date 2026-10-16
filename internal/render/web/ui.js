@@ -67,7 +67,7 @@ function excerpt(page,terms){
   let start=Math.max(0,at-50),end=Math.min(page.text.length,at+110);
   return (start?'…':'')+page.text.slice(start,end)+(end<page.text.length?'…':'')
 }
-function start(data){
+function start(data,options={}){
   let nav=document.getElementById('nav'),results=document.getElementById('results');
   let input=document.getElementById('filter'),sidebar=document.getElementById('kb-sidebar');
   let menu=document.getElementById('menu-toggle'),index=entries(data);
@@ -122,20 +122,36 @@ function start(data){
       else a.removeAttribute('aria-current')
     })
   }
-  function showResults(){
-    let query=input.value.trim();
-    if(query.length<2){results.hidden=true;count.textContent='';results.replaceChildren(count);nav.hidden=false;setActive();return}
-    let matches=search(index,query);
+  let searchTimer,searchVersion=0;
+  function renderMatches(matches,query,remote){
+    if(input.value.trim()!==query)return;
     count.textContent=matches.length===40?'Showing top 40 results':
-      matches.length?`${matches.length} result${matches.length===1?'':'s'}`:'No matches';
+      matches.length?`${matches.length} result${matches.length===1?'':'s'}${remote?' from qmd':''}`:'No matches';
     let list=document.createElement('div');
-    matches.forEach(({page,terms})=>{
+    matches.forEach(({page,terms,snippetText})=>{
       let a=document.createElement('a');a.className='result';a.href='#/'+pathURL(page.path);a.dataset.path=page.path;
       let title=document.createElement('strong');title.className='result-title';highlight(title,page.label,terms);
-      let snippet=document.createElement('span');snippet.className='result-snippet';highlight(snippet,excerpt(page,terms),terms);
+      let snippet=document.createElement('span');snippet.className='result-snippet';highlight(snippet,snippetText||excerpt(page,terms),terms);
       a.append(title,snippet);a.addEventListener('click',closeMenu);list.appendChild(a)
     });
     results.replaceChildren(count,list);results.hidden=false;nav.hidden=true
+  }
+  function showResults(){
+    let query=input.value.trim(),version=++searchVersion;
+    clearTimeout(searchTimer);
+    if(query.length<2){results.hidden=true;count.textContent='';results.replaceChildren(count);nav.hidden=false;setActive();return}
+    renderMatches(search(index,query),query,false);
+    if(!options.remoteSearch)return;
+    searchTimer=setTimeout(()=>options.remoteSearch(query).then(data=>{
+      if(version!==searchVersion)return;
+      let terms=[...new Set(query.toLocaleLowerCase().split(/\s+/).filter(Boolean))];
+      let pages=new Map(index.map(page=>[page.path,page]));
+      let matches=(data.results||[]).map(hit=>{
+        let page=pages.get(hit.path);
+        return page?{page,terms,snippetText:String(hit.snippet||'').replace(/(?:^|\n)\s*\d+:\s?/g,' ').replace(/\s+/g,' ').trim()}:null
+      }).filter(Boolean).slice(0,40);
+      renderMatches(matches,query,true)
+    }).catch(()=>{/* Keep the instant offline results if qmd is unavailable. */}),300)
   }
   menu.addEventListener('click',()=>sidebar.classList.contains('open')?closeMenu():openMenu());
   input.addEventListener('input',showResults);

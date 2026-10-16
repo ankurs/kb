@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ankurs/kb/internal/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -28,11 +29,25 @@ func (q QMD) logf(format string, args ...any) {
 	}
 }
 
-func (q QMD) env() []string {
-	if q.ConfigDir == "" || q.ConfigDir == ".qmd" {
-		return os.Environ()
+// qmd discovers the project-local .qmd index from its working directory.
+// Global overrides must not redirect a kb command to another index or trust store.
+func qmdBaseEnv() []string {
+	env := make([]string, 0, len(os.Environ()))
+	for _, item := range os.Environ() {
+		if !strings.HasPrefix(item, "QMD_CONFIG_DIR=") && !strings.HasPrefix(item, "INDEX_PATH=") {
+			env = append(env, item)
+		}
 	}
-	return append(os.Environ(), "QMD_CONFIG_DIR="+filepath.Join(q.Root, q.ConfigDir))
+	return env
+}
+
+func (q QMD) env() []string {
+	env := qmdBaseEnv()
+	if q.ConfigDir == "" || q.ConfigDir == ".qmd" {
+		return env
+	}
+	dir := filepath.Join(q.Root, q.ConfigDir)
+	return append(env, "QMD_CONFIG_DIR="+dir, "INDEX_PATH="+filepath.Join(dir, "index.sqlite"))
 }
 
 func (q QMD) projectConfig() (string, error) {
@@ -88,6 +103,18 @@ func (q QMD) configuredCollections() (qmdConfig, error) {
 	return config, nil
 }
 
+// ExpandHome resolves the `~` and `~/...` collection roots that qmd accepts.
+func ExpandHome(path string) (string, error) {
+	if path != "~" && !strings.HasPrefix(path, "~/") {
+		return path, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, strings.TrimPrefix(path[1:], "/")), nil
+}
+
 func (q QMD) needsTrust(configPath string) (bool, error) {
 	config, err := readQMDConfig(configPath)
 	if err != nil {
@@ -117,16 +144,9 @@ func (q QMD) needsTrust(configPath string) (bool, error) {
 		if raw == "" {
 			continue
 		}
-		if raw == "~" || strings.HasPrefix(raw, "~/") {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				return false, err
-			}
-			if raw == "~" {
-				raw = home
-			} else {
-				raw = filepath.Join(home, strings.TrimPrefix(raw, "~/"))
-			}
+		raw, err = ExpandHome(raw)
+		if err != nil {
+			return false, err
 		}
 		if !filepath.IsAbs(raw) {
 			raw = filepath.Join(q.Root, raw)
@@ -214,6 +234,50 @@ func (q QMD) Search(query, scope string) (string, error) {
 	}
 	return out, nil
 }
+
+// ServeCollections reports project-local collections suitable for the live viewer.
+// An index created by qmd init is required; a checked-in config alone is not.
+func (q QMD) ServeCollections() (map[string]string, error) {
+	configPath, err := q.projectConfig()
+	if err != nil {
+		return nil, err
+	}
+	root := config.Workspace{Root: q.Root}
+	rel, err := filepath.Rel(q.Root, configPath)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := root.ReadablePath(rel); err != nil {
+		return nil, err
+	}
+	settings, err := q.configuredCollections()
+	if err != nil {
+		return nil, err
+	}
+	dir := q.ConfigDir
+	if dir == "" {
+		dir = ".qmd"
+	}
+	index := filepath.Join(dir, "index.sqlite")
+	if info, err := os.Stat(filepath.Join(q.Root, index)); err != nil || !info.Mode().IsRegular() {
+		return nil, errors.New("qmd index not initialized in this workspace; run `qmd init` and `kb index`")
+	}
+	if _, err := root.ReadablePath(index); err != nil {
+		return nil, err
+	}
+	if err := q.trusted(); err != nil {
+		return nil, err
+	}
+	paths := make(map[string]string, len(settings.Collections))
+	for name, collection := range settings.Collections {
+		paths[name] = collection.Path
+	}
+	return paths, nil
+}
+
+// CommandEnv applies the same project configuration to long-lived qmd processes.
+func (q QMD) CommandEnv() []string { return q.env() }
+
 func (q QMD) Index(force bool) error {
 	if _, err := q.configuredCollections(); err != nil {
 		return err

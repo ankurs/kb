@@ -175,3 +175,44 @@ func TestExternalLinksNewTabPrecedence(t *testing.T) {
 		t.Fatalf("user defaults should override repository: %+v, %v", c.Render, err)
 	}
 }
+
+func TestServeQMDPrecedence(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "kb.yaml")
+	global := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte("version: 1\nid: demo\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	c, err := Load(root, global)
+	if err != nil || !c.Search.UseQMDInServe() {
+		t.Fatalf("default: %+v %v", c.Search, err)
+	}
+	if err := os.WriteFile(global, []byte("defaults:\n  search: {serve_qmd: false}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	c, err = Load(root, global)
+	if err != nil || c.Search.UseQMDInServe() {
+		t.Fatalf("user opt-out: %+v %v", c.Search, err)
+	}
+	if err := os.WriteFile(path, []byte("version: 1\nid: demo\nsearch: {serve_qmd: true}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	c, err = Load(root, global)
+	if err != nil || c.Search.UseQMDInServe() {
+		t.Fatalf("user default precedence: %+v %v", c.Search, err)
+	}
+	if err := os.WriteFile(global, []byte("workspaces:\n  demo:\n    search: {serve_qmd: true}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	c, err = Load(root, global)
+	if err != nil || !c.Search.UseQMDInServe() {
+		t.Fatalf("workspace override: %+v %v", c.Search, err)
+	}
+	if err := os.WriteFile(path, []byte("version: 1\nid: demo\nsearch: {serve_qmd: false}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	c, err = Load(root, filepath.Join(root, "absent"))
+	if err != nil || c.Search.UseQMDInServe() {
+		t.Fatalf("workspace opt-out: %+v %v", c.Search, err)
+	}
+}
