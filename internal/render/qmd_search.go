@@ -1,11 +1,13 @@
 package render
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -31,7 +33,12 @@ type qmdSearch struct {
 	endpoint    string
 	client      *http.Client
 	collections map[string]string
+	// index is the explicit qmd index name, empty for the project default.
+	index string
 }
+
+// qmdStartTimeout bounds how long kb waits for the private qmd process.
+var qmdStartTimeout = 10 * time.Second
 
 // startQMD owns a private loopback HTTP process, never a shared daemon. The
 // browser talks only to kb; the qmd port is not published or configurable.
@@ -55,53 +62,68 @@ func startQMD(ctx context.Context, c config.Workspace) (*qmdSearch, func(), erro
 	listener.Close()
 	childCtx, cancel := context.WithCancel(ctx)
 	args := []string{"mcp", "--http", "--host", "127.0.0.1", "--port", fmt.Sprint(port)}
+	index := ""
 	if c.Search.QMDConfig != "" && c.Search.QMDConfig != ".qmd" {
 		// Custom config directories are not discovered as project-local by
 		// qmd. Use that directory and its paired SQLite index explicitly.
-		args = append([]string{"--index", "index"}, args...)
+		index = "index"
+		args = append([]string{"--index", index}, args...)
 	}
 	cmd := exec.CommandContext(childCtx, "qmd", args...)
 	cmd.Dir = c.Root
 	cmd.Env = q.CommandEnv()
-	// A file-backed stderr avoids a pipe held open by qmd's model workers
-	// after the parent process exits (which would otherwise hang cmd.Wait).
-	cmd.Stderr = os.Stderr
-	cmd.WaitDelay = 2 * time.Second
-	if err = cmd.Start(); err != nil {
+	// qmd cannot inherit kb's listener, so another local process could take the
+	// port between Close and qmd's bind. qmd exits with EADDRINUSE in that case
+	// and logs its listening address only after its own bind succeeds; that
+	// line, read from a pipe only this child holds, proves the port is qmd's.
+	// An *os.File stderr also keeps cmd.Wait from blocking on a pipe held open
+	// by qmd's model workers after the parent process exits.
+	stderr, stderrWriter, err := os.Pipe()
+	if err != nil {
 		cancel()
 		return nil, nil, err
 	}
+	cmd.Stderr = stderrWriter
+	cmd.WaitDelay = 2 * time.Second
+	err = cmd.Start()
+	stderrWriter.Close()
+	if err != nil {
+		stderr.Close()
+		cancel()
+		return nil, nil, err
+	}
+	endpoint := fmt.Sprintf("http://127.0.0.1:%d", port)
+	ready := make(chan struct{})
+	go func() {
+		defer stderr.Close()
+		want := "QMD MCP server listening on " + endpoint + "/mcp"
+		lines, started := bufio.NewScanner(stderr), false
+		for lines.Scan() {
+			fmt.Fprintln(os.Stderr, lines.Text())
+			if !started && strings.TrimSpace(lines.Text()) == want {
+				started = true
+				close(ready)
+			}
+		}
+		io.Copy(os.Stderr, stderr)
+	}()
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 	stop := func() { cancel(); <-done }
-	backend := &qmdSearch{endpoint: fmt.Sprintf("http://127.0.0.1:%d", port), client: &http.Client{Timeout: 45 * time.Second}, collections: collections}
-	ticker := time.NewTicker(50 * time.Millisecond)
-	defer ticker.Stop()
-	timeout := time.NewTimer(10 * time.Second)
+	timeout := time.NewTimer(qmdStartTimeout)
 	defer timeout.Stop()
-	for {
-		req, _ := http.NewRequestWithContext(ctx, "GET", backend.endpoint+"/health", nil)
-		probe := &http.Client{Timeout: 200 * time.Millisecond}
-		if resp, e := probe.Do(req); e == nil {
-			resp.Body.Close()
-			if resp.StatusCode == 200 {
-				return backend, stop, nil
-			}
-		}
-		select {
-		case err := <-done:
-			cancel()
-			return nil, nil, fmt.Errorf("qmd mcp --http exited: %w", err)
-		case <-timeout.C:
-			cancel()
-			<-done
-			return nil, nil, errors.New("qmd mcp --http did not start within 10 seconds")
-		case <-ctx.Done():
-			cancel()
-			<-done
-			return nil, nil, ctx.Err()
-		case <-ticker.C:
-		}
+	select {
+	case <-ready:
+		return &qmdSearch{endpoint: endpoint, client: &http.Client{Timeout: 45 * time.Second}, collections: collections, index: index}, stop, nil
+	case err := <-done:
+		cancel()
+		return nil, nil, fmt.Errorf("qmd mcp --http exited: %w", err)
+	case <-timeout.C:
+		stop()
+		return nil, nil, fmt.Errorf("qmd mcp --http did not start within %s", qmdStartTimeout)
+	case <-ctx.Done():
+		stop()
+		return nil, nil, ctx.Err()
 	}
 }
 
@@ -144,7 +166,7 @@ func (s *qmdSearch) query(ctx context.Context, text string, inv *workspace.Inven
 	seen := map[string]bool{}
 	for _, result := range output.Results {
 		u, err := url.Parse(result.File)
-		if err != nil || u.Scheme != "qmd" || u.Host == "" || u.RawQuery != "" || u.Fragment != "" {
+		if err != nil || u.Scheme != "qmd" || u.Host == "" || u.Fragment != "" || !s.indexQuery(u.RawQuery) {
 			continue
 		}
 		base, ok := s.collections[u.Host]
@@ -153,6 +175,9 @@ func (s *qmdSearch) query(ctx context.Context, text string, inv *workspace.Inven
 		}
 		relative := strings.TrimPrefix(u.Path, "/")
 		if !config.SafeRelative(relative) || relative == "." || strings.Contains(relative, "\\") {
+			continue
+		}
+		if base, err = workspace.ExpandHome(base); err != nil {
 			continue
 		}
 		if !filepath.IsAbs(base) {
@@ -170,6 +195,16 @@ func (s *qmdSearch) query(ctx context.Context, text string, inv *workspace.Inven
 		hits = append(hits, searchHit{Path: key, Snippet: result.Snippet})
 	}
 	return hits, nil
+}
+
+// indexQuery accepts no URI query, or exactly the index parameter qmd adds
+// for the non-default index this process was started with.
+func (s *qmdSearch) indexQuery(raw string) bool {
+	if raw == "" {
+		return true
+	}
+	values, err := url.ParseQuery(raw)
+	return err == nil && s.index != "" && len(values) == 1 && len(values["index"]) == 1 && values.Get("index") == s.index
 }
 
 func serveSearch(w http.ResponseWriter, r *http.Request, c config.Workspace, s *qmdSearch) {

@@ -103,6 +103,18 @@ func (q QMD) configuredCollections() (qmdConfig, error) {
 	return config, nil
 }
 
+// ExpandHome resolves the `~` and `~/...` collection roots that qmd accepts.
+func ExpandHome(path string) (string, error) {
+	if path != "~" && !strings.HasPrefix(path, "~/") {
+		return path, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, strings.TrimPrefix(path[1:], "/")), nil
+}
+
 func (q QMD) needsTrust(configPath string) (bool, error) {
 	config, err := readQMDConfig(configPath)
 	if err != nil {
@@ -132,16 +144,9 @@ func (q QMD) needsTrust(configPath string) (bool, error) {
 		if raw == "" {
 			continue
 		}
-		if raw == "~" || strings.HasPrefix(raw, "~/") {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				return false, err
-			}
-			if raw == "~" {
-				raw = home
-			} else {
-				raw = filepath.Join(home, strings.TrimPrefix(raw, "~/"))
-			}
+		raw, err = ExpandHome(raw)
+		if err != nil {
+			return false, err
 		}
 		if !filepath.IsAbs(raw) {
 			raw = filepath.Join(q.Root, raw)
@@ -176,7 +181,7 @@ func (q QMD) trusted() error {
 	q.logf("qmd: checking configuration trust")
 	cmd := exec.Command("qmd", "trust", "list")
 	cmd.Dir = q.Root
-	cmd.Env = qmdBaseEnv()
+	cmd.Env = q.env()
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("qmd trust list: %w: %s", err, out)

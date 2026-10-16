@@ -19,7 +19,7 @@ func TestQMDProviderTrustAndArguments(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte("collections:\n  wiki:\n    path: .\nmodels:\n  embed: hf:example/custom/model.gguf\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	script := "#!/bin/sh\ncase \"$1\" in\n trust) echo \"" + configPath + " (trusted now)\";;\n query) printf 'config=%s args=%s\\n' \"$QMD_CONFIG_DIR\" \"$*\";;\n update|embed) echo \"$1\";;\nesac\n"
+	script := "#!/bin/sh\ncase \"$1\" in\n trust) [ \"$QMD_CONFIG_DIR\" = \"" + configDir + "\" ] && echo \"" + configPath + " (trusted now)\";;\n query) printf 'config=%s args=%s\\n' \"$QMD_CONFIG_DIR\" \"$*\";;\n update|embed) echo \"$1\";;\nesac\n"
 	if err := os.WriteFile(bin, []byte(script), 0755); err != nil {
 		t.Fatal(err)
 	}

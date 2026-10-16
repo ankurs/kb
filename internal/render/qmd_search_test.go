@@ -1,14 +1,18 @@
 package render
 
 import (
+	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/ankurs/kb/internal/config"
 	"github.com/ankurs/kb/internal/workspace"
 )
 
@@ -281,5 +285,93 @@ func TestServeQMDDisabledBeforeStartingProcess(t *testing.T) {
 	}
 	if c.Search.Provider != "qmd" {
 		t.Fatal("serve opt-out must not disable kb search and index")
+	}
+}
+
+// fakeQMD installs a qmd stub and an initialized index in c's qmd config.
+func fakeQMD(t *testing.T, c config.Workspace, script string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(c.Root, c.Search.QMDConfig, "index.sqlite"), []byte("placeholder"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	bin := filepath.Join(t.TempDir(), "qmd")
+	if err := os.WriteFile(bin, []byte("#!/bin/sh\n"+script), 0755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", filepath.Dir(bin)+string(os.PathListSeparator)+os.Getenv("PATH"))
+}
+
+func TestStartQMDRequiresChildListeningHandshake(t *testing.T) {
+	c := testWorkspace(t)
+	portFile := filepath.Join(t.TempDir(), "port")
+	// The stub never binds its port; another local process answers /health.
+	fakeQMD(t, c, `while [ "$1" != --port ]; do shift; done; echo "$2" > "`+portFile+`"; exec sleep 30`+"\n")
+	original := qmdStartTimeout
+	qmdStartTimeout = 1500 * time.Millisecond
+	defer func() { qmdStartTimeout = original }()
+	go func() {
+		for i := 0; i < 100; i++ {
+			if port, err := os.ReadFile(portFile); err == nil && len(strings.TrimSpace(string(port))) > 0 {
+				listener, err := net.Listen("tcp", "127.0.0.1:"+strings.TrimSpace(string(port)))
+				if err != nil {
+					return
+				}
+				go http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`{"status":"ok"}`)) }))
+				t.Cleanup(func() { listener.Close() })
+				return
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+	backend, stop, err := startQMD(context.Background(), c)
+	if err == nil {
+		stop()
+		t.Fatalf("accepted a port qmd never bound: %+v", backend)
+	}
+}
+
+func TestStartQMDAcceptsChildListeningLine(t *testing.T) {
+	c := testWorkspace(t)
+	c.Search.QMDConfig = "custom-qmd"
+	if err := os.Rename(filepath.Join(c.Root, ".qmd"), filepath.Join(c.Root, "custom-qmd")); err != nil {
+		t.Fatal(err)
+	}
+	argsFile := filepath.Join(t.TempDir(), "args")
+	fakeQMD(t, c, `echo "$*" > "`+argsFile+`"; while [ "$1" != --port ]; do shift; done; echo "QMD MCP server listening on http://127.0.0.1:$2/mcp" >&2; exec sleep 30`+"\n")
+	backend, stop, err := startQMD(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stop()
+	args, _ := os.ReadFile(argsFile)
+	if backend.index != "index" || !strings.HasPrefix(string(args), "--index index mcp --http") || !strings.HasPrefix(backend.endpoint, "http://127.0.0.1:") {
+		t.Fatalf("backend %+v args %q", backend, args)
+	}
+}
+
+func TestQMDHitsForCustomIndexAndHomeCollections(t *testing.T) {
+	c := testWorkspace(t)
+	inv, err := workspace.Load(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{"results": []qmdResult{
+			{File: "qmd://wiki/tool-library/kb/borrowing-policy.md?index=other", Snippet: "other index"},
+			{File: "qmd://wiki/tool-library/kb/borrowing-policy.md?index=index&x=1", Snippet: "extra query"},
+			{File: "qmd://wiki/tool-library/kb/borrowing-policy.md?index=index", Snippet: "custom index"},
+		}})
+	}))
+	defer upstream.Close()
+	t.Setenv("HOME", filepath.Dir(c.Root))
+	backend := &qmdSearch{endpoint: upstream.URL, client: upstream.Client(), collections: map[string]string{"wiki": "~/" + filepath.Base(c.Root)}, index: "index"}
+	ctx := httptest.NewRequest("GET", "/", nil).Context()
+	hits, err := backend.query(ctx, "policy", inv)
+	if err != nil || len(hits) != 1 || hits[0].Path != "tool-library/kb/borrowing-policy.md" || hits[0].Snippet != "custom index" {
+		t.Fatalf("hits: %+v %v", hits, err)
+	}
+	backend.index = ""
+	if hits, err := backend.query(ctx, "policy", inv); err != nil || len(hits) != 0 {
+		t.Fatalf("default index must reject index queries: %+v %v", hits, err)
 	}
 }
