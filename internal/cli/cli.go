@@ -37,6 +37,7 @@ func New() *cobra.Command {
 		return c, err
 	}
 
+	root.AddCommand(skillCommand())
 	root.AddCommand(&cobra.Command{Use: "init", Short: "Create a minimal kb.yaml", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		dir := start
 		if dir == "" {

@@ -39,6 +39,23 @@ Put a short `AGENTS.md` (or `CLAUDE.md`) at the workspace root. For example:
 Codex, Claude Code, Mistral Vibe, and pi all load project instruction files
 like this automatically or on request.
 
+## Install the reusable kb skill
+
+The bundled [kb skill](https://github.com/ankurs/kb/blob/main/internal/cli/skill/SKILL.md) tells an agent when
+to find or read existing notes, use `kb capture` and `kb new`, and validate
+edits with `kb check`. It complements workspace-specific `AGENTS.md` rules and
+the separate qmd skill. Preview it with `kb skill show`, or from the intended
+project root install it with:
+
+```sh
+kb skill install              # ./.agents/skills/kb/SKILL.md
+kb skill install --global     # ~/.agents/skills/kb/SKILL.md instead
+```
+
+Existing skill files are preserved; use `--force` to replace one. Installation
+only writes the skill file. It does not edit `AGENTS.md`, configure qmd, or run
+`kb index`.
+
 ## Give the agent semantic search with qmd
 
 [qmd](https://github.com/tobi/qmd) is the local search engine behind
