@@ -32,6 +32,11 @@ The binary goes to `$(go env GOPATH)/bin`; make sure that directory is on your
 [Install](https://ankurs.github.io/kb/#/start/install.md) for checksums,
 pinning a version, and building from source.
 
+If a Go-installed version returns 404 for `/vendor/` scripts or styles,
+reinstall after a release containing the embedded-asset packaging fix. For
+older versions such as v0.1.2, build from a source checkout or use a release
+archive instead; reinstalling the same tag will not repair its binary.
+
 ## Quick start
 
 From a folder of Markdown:
@@ -137,4 +142,4 @@ checksums, and the Pages workflow deploys `site/`. See
 [Contributing](site/contributing.md).
 
 The source code is licensed under Apache-2.0. Browser asset licenses are in
-`assets/vendor/licenses/`.
+`assets/browser/licenses/`.

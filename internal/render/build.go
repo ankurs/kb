@@ -554,7 +554,7 @@ func siteFiles(inv *workspace.Inventory) (map[string][]byte, error) {
 		return nil, err
 	}
 	files["_kb/viewer-data.json"] = index
-	err = fs.WalkDir(assets.FS, "vendor", func(path string, d fs.DirEntry, e error) error {
+	err = fs.WalkDir(assets.FS, "browser", func(path string, d fs.DirEntry, e error) error {
 		if e != nil {
 			return e
 		}
@@ -563,7 +563,7 @@ func siteFiles(inv *workspace.Inventory) (map[string][]byte, error) {
 		}
 		b, e := fs.ReadFile(assets.FS, path)
 		if e == nil {
-			files[path] = b
+			files["vendor/"+strings.TrimPrefix(path, "browser/")] = b
 		}
 		return e
 	})

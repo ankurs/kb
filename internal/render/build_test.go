@@ -103,7 +103,15 @@ func TestSnapshotFallback(t *testing.T) {
 func TestVirtualSidebarAndAssets(t *testing.T) {
 	c := testWorkspace(t)
 	handler := Handler(c)
-	for path, want := range map[string]string{"/_sidebar.md": "Tool Library Pilot", "/README.md": "Neighborhood Tool Library", "/vendor/docsify/docsify-4.13.1.min.js": "docsify", "/handbook/check-in/check-in-flow.svg": "<svg", "/not-linked.pdf": ""} {
+	for path, want := range map[string]string{
+		"/_sidebar.md":                          "Tool Library Pilot",
+		"/README.md":                            "Neighborhood Tool Library",
+		"/vendor/docsify/docsify-4.13.1.min.js": "docsify",
+		"/vendor/docsify/dark-4.13.1.min.css":   "body",
+		"/vendor/bundle/purify-3.2.6.min.js":    "DOMPurify",
+		"/handbook/check-in/check-in-flow.svg":  "<svg",
+		"/not-linked.pdf":                       "",
+	} {
 		recorder := httptest.NewRecorder()
 		handler.ServeHTTP(recorder, httptest.NewRequest("GET", path, nil))
 		b := recorder.Body.Bytes()
@@ -126,6 +134,12 @@ func TestOfflineRuntimeResources(t *testing.T) {
 	html, err := os.ReadFile(filepath.Join(result.Site, "index.html"))
 	if err != nil {
 		t.Fatal(err)
+	}
+	for _, name := range []string{"vendor/docsify/docsify-4.13.1.min.js", "vendor/docsify/dark-4.13.1.min.css", "vendor/bundle/purify-3.2.6.min.js"} {
+		b, err := os.ReadFile(filepath.Join(result.Site, filepath.FromSlash(name)))
+		if err != nil || len(b) == 0 {
+			t.Fatalf("static site missing browser asset %s: %v", name, err)
+		}
 	}
 	if bytes.Contains(html, []byte(`src="https://`)) || bytes.Contains(html, []byte(`href="https://`)) {
 		t.Fatal("static viewer requires external runtime")

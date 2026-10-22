@@ -4,5 +4,5 @@ import "embed"
 
 // FS is the pinned offline browser runtime and its license notices.
 //
-//go:embed vendor/**
+//go:embed browser/**
 var FS embed.FS

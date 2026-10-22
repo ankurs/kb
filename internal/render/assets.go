@@ -15,7 +15,7 @@ import (
 //go:embed web/*
 var web embed.FS
 
-func asset(name string) ([]byte, error)             { return fs.ReadFile(assets.FS, "vendor/"+name) }
+func asset(name string) ([]byte, error)             { return fs.ReadFile(assets.FS, "browser/"+name) }
 func webFile(name string) string                    { b, _ := web.ReadFile("web/" + name); return string(b) }
 func script(b []byte) string                        { return strings.ReplaceAll(string(b), "</script", "<\\/script") }
 func LiveHTML(c config.Workspace, live bool) string { return liveHTML(c, live, false) }

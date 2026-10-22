@@ -22,6 +22,13 @@ export PATH="$(go env GOPATH)/bin:$PATH"
 Run the same `go install` command again to upgrade. To pin a version, replace
 `@latest` with a release tag such as `@v0.1.2`.
 
+**Older Go-installed versions:** If the viewer loads `_kb` scripts but returns
+404 for `/vendor/` JavaScript and CSS, its Go module archive omitted the
+embedded browser assets. This affects v0.1.2; reinstalling that same tag
+will not fix it. Until a version containing the packaging fix is released,
+use a release archive or build from a source checkout. Then run the Go
+install command again to upgrade.
+
 ## From a release archive
 
 Each [GitHub release](https://github.com/ankurs/kb/releases) includes archives
