@@ -8,6 +8,25 @@
 | `--global-config PATH` | User settings file. Default: `~/.config/kb/config.yaml`. |
 | `-v`, `--verbose` | Print progress diagnostics to stderr. Standard output is unchanged. |
 
+## Agent skill
+
+### kb skill show
+
+Print the bundled kb agent skill to standard output. No workspace is required.
+
+### kb skill install
+
+Install the bundled skill at `./.agents/skills/kb/SKILL.md`, relative to the
+current directory. No workspace is required; run from the intended project
+root. An existing skill file is not overwritten by default.
+
+| Flag | Meaning |
+| --- | --- |
+| `--global` | Install at `~/.agents/skills/kb/SKILL.md` instead. |
+| `-f`, `--force` | Replace an existing skill file; preserve other files in the skill directory. |
+
+Installation does not change agent configuration, qmd settings, or the index.
+
 ## Content
 
 ### kb init

@@ -66,9 +66,21 @@ to select a workspace explicitly. `kb init` never overwrites an existing file.
 | `kb sync` | Run the trusted sync command from configuration. |
 | `kb verify` | Check content and generated output without writing files. |
 | `kb doctor` | Show workspace settings and optional qmd diagnostics. |
+| `kb skill show` / `kb skill install` | Display or install the bundled agent skill. |
 
 Add `-v` or `--verbose` to any command for progress diagnostics on stderr.
 Every flag is in the [command reference](https://ankurs.github.io/kb/#/reference/commands.md).
+
+## Agent skill
+
+`kb skill show` prints the bundled [kb skill](internal/cli/skill/SKILL.md) without
+requiring a workspace. From the directory where you want project-scoped agent
+instructions, run `kb skill install` to write `.agents/skills/kb/SKILL.md`.
+Use `kb skill install --global` for `~/.agents/skills/kb/SKILL.md`. Installation
+refuses to replace an existing skill file unless you pass `--force` (`-f`); it
+does not edit `AGENTS.md`, configure qmd, or run indexing. See
+[coding agents](https://ankurs.github.io/kb/#/guides/coding-agents.md) for the
+workflows it covers.
 
 ## Try the example
 
