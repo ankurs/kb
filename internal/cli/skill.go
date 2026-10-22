@@ -15,12 +15,14 @@ var kbSkill []byte
 
 func skillCommand() *cobra.Command {
 	var global, force bool
-	skill := &cobra.Command{Use: "skill", Short: "Show or install the kb agent skill", Args: cobra.NoArgs}
-	skill.AddCommand(&cobra.Command{Use: "show", Short: "Print the bundled kb skill", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+	skill := &cobra.Command{Use: "skill", Short: "Show or install the kb agent skill", Args: noArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+		return cmd.Help()
+	}}
+	skill.AddCommand(&cobra.Command{Use: "show", Short: "Print the bundled kb skill", Args: noArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		_, err := cmd.OutOrStdout().Write(kbSkill)
 		return err
 	}})
-	install := &cobra.Command{Use: "install", Short: "Install the kb skill into ./.agents/skills/kb", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+	install := &cobra.Command{Use: "install", Short: "Install the kb skill into ./.agents/skills/kb", Args: noArgs, Example: "  kb skill install\n  kb skill install --global", RunE: func(cmd *cobra.Command, _ []string) error {
 		base := "."
 		if global {
 			home, err := os.UserHomeDir()
