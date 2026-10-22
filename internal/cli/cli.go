@@ -16,7 +16,9 @@ import (
 func New() *cobra.Command {
 	var start, global string
 	var verbose bool
-	root := &cobra.Command{Use: "kb", Short: "Offline-first, Markdown-native knowledge base", SilenceUsage: true, SilenceErrors: true}
+	root := &cobra.Command{Use: "kb", Short: "Offline-first, Markdown-native knowledge base", SilenceUsage: true, SilenceErrors: true, Args: noArgs, RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Help()
+	}}
 	root.PersistentFlags().StringVarP(&start, "workspace", "w", "", "content repository path (default: discover kb.yaml)")
 	root.PersistentFlags().StringVar(&global, "global-config", "", "user-global overrides (default: ~/.config/kb/config.yaml)")
 	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "show progress diagnostics on stderr")
@@ -38,7 +40,7 @@ func New() *cobra.Command {
 	}
 
 	root.AddCommand(skillCommand())
-	root.AddCommand(&cobra.Command{Use: "init", Short: "Create a minimal kb.yaml", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	root.AddCommand(&cobra.Command{Use: "init", Short: "Create a minimal kb.yaml", Args: noArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		dir := start
 		if dir == "" {
 			dir = "."
@@ -55,7 +57,7 @@ func New() *cobra.Command {
 		return nil
 	}})
 	var project string
-	capture := &cobra.Command{Use: "capture TEXT", Short: "Append a dated inbox entry", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	capture := &cobra.Command{Use: "capture TEXT", Short: "Append a dated inbox entry", Args: oneArg("TEXT"), Example: "  kb capture \"Ask about the loan policy\" --at tool-library", RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -69,17 +71,32 @@ func New() *cobra.Command {
 	capture.Flags().StringVar(&project, "at", "", "project path to label the capture")
 	root.AddCommand(capture)
 	var at, title, dateString string
-	newCmd := &cobra.Command{Use: "new meeting|page", Short: "Create a page from a template without overwriting", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		c, err := load(cmd)
-		if err != nil {
+	newCmd := &cobra.Command{Use: "new meeting|page", Short: "Create a page from a template without overwriting", Example: "  kb new page --at tool-library --title \"Architecture\"\n  kb new meeting --at tool-library --title \"Design review\" --date 2026-10-10", Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return usagef(cmd, "missing page kind; expected \"meeting\" or \"page\"")
+		}
+		if err := oneArg("kind")(cmd, args); err != nil {
+			return err
+		}
+		if args[0] != "meeting" && args[0] != "page" {
+			return usagef(cmd, "unknown page kind %q; expected \"meeting\" or \"page\"", args[0])
+		}
+		return nil
+	}, RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireFlags(cmd, "at", "title"); err != nil {
 			return err
 		}
 		date := time.Now()
 		if dateString != "" {
+			var err error
 			date, err = time.ParseInLocation("2006-01-02", dateString, time.Local)
 			if err != nil {
-				return err
+				return usagef(cmd, "invalid --date %q; use YYYY-MM-DD, e.g. 2026-10-10", dateString)
 			}
+		}
+		c, err := load(cmd)
+		if err != nil {
+			return err
 		}
 		path, err := workspace.New(c, args[0], at, title, date)
 		if err == nil {
@@ -88,13 +105,11 @@ func New() *cobra.Command {
 		}
 		return err
 	}}
-	newCmd.Flags().StringVar(&at, "at", "", "project directory, relative to content root")
-	newCmd.Flags().StringVar(&title, "title", "", "page title")
+	newCmd.Flags().StringVar(&at, "at", "", "project directory, relative to content root (required)")
+	newCmd.Flags().StringVar(&title, "title", "", "page title (required)")
 	newCmd.Flags().StringVar(&dateString, "date", "", "meeting date (YYYY-MM-DD)")
-	_ = newCmd.MarkFlagRequired("at")
-	_ = newCmd.MarkFlagRequired("title")
 	root.AddCommand(newCmd)
-	root.AddCommand(&cobra.Command{Use: "review", Short: "Show unprocessed inbox entries without changing them", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	root.AddCommand(&cobra.Command{Use: "review", Short: "Show unprocessed inbox entries without changing them", Args: noArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -106,7 +121,7 @@ func New() *cobra.Command {
 		}
 		return err
 	}})
-	root.AddCommand(&cobra.Command{Use: "check", Short: "Validate authored headings and local links (read-only)", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	root.AddCommand(&cobra.Command{Use: "check", Short: "Validate authored headings and local links (read-only)", Args: noArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -133,7 +148,7 @@ func New() *cobra.Command {
 		return nil
 	}})
 	var scope string
-	find := &cobra.Command{Use: "find QUERY", Short: "Search local Markdown without models", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	find := &cobra.Command{Use: "find QUERY", Short: "Search local Markdown without models", Args: oneArg("QUERY"), Example: "  kb find \"borrowing policy\"\n  kb find ladder --scope tool-library", RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -151,7 +166,7 @@ func New() *cobra.Command {
 	find.Flags().StringVar(&scope, "scope", "", "path prefix")
 	root.AddCommand(find)
 	var collection string
-	search := &cobra.Command{Use: "search QUERY", Short: "Hybrid search through the configured qmd provider", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	search := &cobra.Command{Use: "search QUERY", Short: "Hybrid search through the configured qmd provider", Args: oneArg("QUERY"), Example: "  kb search \"how do members borrow tools\"", RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -169,7 +184,7 @@ func New() *cobra.Command {
 	search.Flags().StringVar(&collection, "scope", "", "qmd collection")
 	root.AddCommand(search)
 	var force bool
-	index := &cobra.Command{Use: "index", Short: "Run qmd update and embed", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	index := &cobra.Command{Use: "index", Short: "Run qmd update and embed", Args: noArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -182,7 +197,7 @@ func New() *cobra.Command {
 	}}
 	index.Flags().BoolVar(&force, "force", false, "force re-embedding")
 	root.AddCommand(index)
-	root.AddCommand(&cobra.Command{Use: "verify", Short: "Check content and current offline outputs without writing", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	root.AddCommand(&cobra.Command{Use: "verify", Short: "Check content and current offline outputs without writing", Args: noArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -204,7 +219,7 @@ func New() *cobra.Command {
 		fmt.Fprintln(cmd.OutOrStdout(), "content and offline outputs current")
 		return nil
 	}})
-	root.AddCommand(&cobra.Command{Use: "build", Short: "Build offline site and tracked single-file snapshots", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	root.AddCommand(&cobra.Command{Use: "build", Short: "Build offline site and tracked single-file snapshots", Args: noArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -226,7 +241,7 @@ func New() *cobra.Command {
 	var publishOutput, publishWiki string
 	var include, exclude []string
 	var includeRoot bool
-	publish := &cobra.Command{Use: "publish", Short: "Build HTML-only wiki bundles in a distribution directory", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	publish := &cobra.Command{Use: "publish", Short: "Build HTML-only wiki bundles in a distribution directory", Args: noArgs, Example: "  kb publish --output dist --include tool-library", RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -266,7 +281,7 @@ func New() *cobra.Command {
 	publish.Flags().BoolVar(&includeRoot, "root-pages", false, "include root pages with folder filters")
 	root.AddCommand(publish)
 	var showSync bool
-	syncCommand := &cobra.Command{Use: "sync", Short: "Run the configured sync command", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	syncCommand := &cobra.Command{Use: "sync", Short: "Run the configured sync command", Args: noArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -291,7 +306,7 @@ func New() *cobra.Command {
 	root.AddCommand(syncCommand)
 	var host string
 	var port int
-	serve := &cobra.Command{Use: "serve", Short: "Serve a local Docsify viewer with live navigation and reload", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	serve := &cobra.Command{Use: "serve", Short: "Serve a local Docsify viewer with live navigation and reload", Args: noArgs, Example: "  kb serve --port 3000", RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -308,7 +323,7 @@ func New() *cobra.Command {
 	serve.Flags().StringVar(&host, "host", "127.0.0.1", "bind address")
 	serve.Flags().IntVarP(&port, "port", "p", 3000, "listen port")
 	root.AddCommand(serve)
-	root.AddCommand(&cobra.Command{Use: "doctor", Short: "Check optional dependencies and workspace configuration", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, args []string) error {
+	root.AddCommand(&cobra.Command{Use: "doctor", Short: "Check optional dependencies and workspace configuration", Args: noArgs, RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := load(cmd)
 		if err != nil {
 			return err
@@ -321,7 +336,7 @@ func New() *cobra.Command {
 		}
 		return nil
 	}})
-	root.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error { return fmt.Errorf("%w", err) })
+	root.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error { return usageError{cmd: cmd, err: err} })
 
 	return root
 }

@@ -69,6 +69,8 @@ to select a workspace explicitly. `kb init` never overwrites an existing file.
 | `kb skill show` / `kb skill install` | Display or install the bundled agent skill. |
 
 Add `-v` or `--verbose` to any command for progress diagnostics on stderr.
+Invocation mistakes, such as a missing flag or an unknown command, explain
+the problem and print the command's usage, examples, and `--help` pointer.
 Every flag is in the [command reference](https://ankurs.github.io/kb/#/reference/commands.md).
 
 ## Agent skill

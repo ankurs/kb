@@ -8,6 +8,25 @@
 | `--global-config PATH` | User settings file. Default: `~/.config/kb/config.yaml`. |
 | `-v`, `--verbose` | Print progress diagnostics to stderr. Standard output is unchanged. |
 
+Run `kb COMMAND --help` for a command's flags and examples. When a command is
+invoked incorrectly (a missing argument or required flag, an unknown command
+or flag, or an invalid value), kb exits non-zero and prints what is wrong
+followed by the command's usage line, examples, and a pointer to `--help`:
+
+```text
+$ kb new hello
+kb: unknown page kind "hello"; expected "meeting" or "page"
+
+Usage:
+  kb new meeting|page [flags]
+
+Examples:
+  kb new page --at tool-library --title "Architecture"
+  kb new meeting --at tool-library --title "Design review" --date 2026-10-10
+
+Run 'kb new --help' for all flags.
+```
+
 ## Agent skill
 
 ### kb skill show

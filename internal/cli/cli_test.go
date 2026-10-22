@@ -238,3 +238,50 @@ func TestPublishAndSyncCLI(t *testing.T) {
 		t.Fatalf("sync did not run: %v", err)
 	}
 }
+
+func TestUsageErrors(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		want []string
+		not  []string
+	}{
+		{[]string{"new", "hello"}, []string{`unknown page kind "hello"`, "Usage:", "kb new page --at", "Run 'kb new --help'"}, nil},
+		{[]string{"new", "page"}, []string{"missing required flags --at and --title", "project directory"}, nil},
+		{[]string{"new", "page", "--at", "x"}, []string{"missing required flag --title"}, []string{"--at       project"}},
+		{[]string{"new", "page", "--at", "x", "--title", "y", "--date", "bad"}, []string{`invalid --date "bad"`, "YYYY-MM-DD"}, nil},
+		{[]string{"review", "extra"}, []string{"takes no arguments", "kb review"}, nil},
+		{[]string{"find"}, []string{"missing QUERY argument", "kb find QUERY"}, nil},
+		{[]string{"find", "a", "b"}, []string{"quote multi-word text"}, nil},
+		{[]string{"chek"}, []string{`unknown command "chek"`, "did you mean check?", "Run 'kb --help' for all commands"}, nil},
+		{[]string{"skill", "bogus"}, []string{`unknown command "bogus" for "kb skill"`}, nil},
+		{[]string{"new", "--bogus", "page"}, []string{"unknown flag: --bogus", "Usage:"}, nil},
+	} {
+		root := New()
+		var out bytes.Buffer
+		root.SetOut(&out)
+		root.SetErr(&out)
+		root.SetArgs(append([]string{"--workspace", sample(t)}, tc.args...))
+		err := root.Execute()
+		if err == nil {
+			t.Errorf("%v: expected error", tc.args)
+			continue
+		}
+		for _, want := range tc.want {
+			if !strings.Contains(err.Error(), want) {
+				t.Errorf("%v: error %q lacks %q", tc.args, err, want)
+			}
+		}
+		for _, not := range tc.not {
+			if strings.Contains(err.Error(), not) {
+				t.Errorf("%v: error %q unexpectedly contains %q", tc.args, err, not)
+			}
+		}
+	}
+}
+
+func TestRootWithoutArgsPrintsHelp(t *testing.T) {
+	out, _ := runCLI(t)
+	if !strings.Contains(out, "Available Commands:") {
+		t.Fatalf("expected help, got %q", out)
+	}
+}
