@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ankurs/kb/assets"
 	"github.com/ankurs/kb/internal/config"
 	"github.com/ankurs/kb/internal/workspace"
 )
@@ -44,12 +42,12 @@ func handler(c config.Workspace, search *qmdSearch) http.Handler {
 			}
 		}
 		if strings.HasPrefix(r.URL.Path, "/vendor/") {
-			name := strings.TrimPrefix(r.URL.Path, "/")
+			name := strings.TrimPrefix(r.URL.Path, "/vendor/")
 			if strings.Contains(name, "..") {
 				http.NotFound(w, r)
 				return
 			}
-			file, err := fs.ReadFile(assets.FS, name)
+			file, err := asset(name)
 			if err != nil {
 				http.NotFound(w, r)
 				return

@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-`cmd/kb` is the CLI entry point. `internal/cli` defines commands; `internal/config` loads and validates `kb.yaml`; `internal/workspace` discovers Markdown, links, and navigation; `internal/render` serves and builds the viewers. Browser scripts and styles live in `internal/render/web`, while pinned third-party assets and licenses live in `assets/vendor`. The fictional workspace in `testdata/sample` is both documentation and a test fixture. Keep generated `.kb/` and `dist/` output out of commits unless explicitly requested.
+`cmd/kb` is the CLI entry point. `internal/cli` defines commands; `internal/config` loads and validates `kb.yaml`; `internal/workspace` discovers Markdown, links, and navigation; `internal/render` serves and builds the viewers. Browser scripts and styles live in `internal/render/web`, while pinned third-party assets and licenses live in `assets/browser`. The fictional workspace in `testdata/sample` is both documentation and a test fixture. Keep generated `.kb/` and `dist/` output out of commits unless explicitly requested.
 
 Keep the root `README.md` and the user documentation in `site/` in sync with behavior, commands, configuration, examples, and security changes. Update both in the same change rather than leaving either outdated.
 
@@ -15,7 +15,7 @@ Keep the root `README.md` and the user documentation in `site/` in sync with beh
 
 ## Coding Style & Naming Conventions
 
-Use standard Go formatting (`gofmt`), tabs as produced by the formatter, short package names, and descriptive exported identifiers. Keep command behavior in `internal/cli` and reusable content or rendering logic in its corresponding package. Name Go tests `TestXxx` in adjacent `_test.go` files. Keep browser assets offline and update `assets/vendor/manifest.json` and license notices when vendoring a dependency.
+Use standard Go formatting (`gofmt`), tabs as produced by the formatter, short package names, and descriptive exported identifiers. Keep command behavior in `internal/cli` and reusable content or rendering logic in its corresponding package. Name Go tests `TestXxx` in adjacent `_test.go` files. Keep browser assets offline and update `assets/browser/manifest.json` and license notices when vendoring a dependency.
 
 ## Testing Guidelines
 

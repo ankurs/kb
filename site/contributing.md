@@ -12,7 +12,7 @@ Contributions are welcome at
 | `internal/config` | Loading and validating `kb.yaml`. |
 | `internal/workspace` | Markdown discovery, links, navigation, capture, search. |
 | `internal/render` | Serving, building, publishing; browser code in `web/`. |
-| `assets/vendor` | Pinned third-party browser assets and their licenses. |
+| `assets/browser` | Pinned third-party browser assets and their licenses. |
 | `testdata/sample` | The example workspace, also a test fixture. |
 | `site` | This documentation, a `kb` workspace. |
 
@@ -37,7 +37,7 @@ smoke tests.
 - Add focused regression tests when changing link resolution, mounts,
   security checks, publishing selection, or output staleness.
 - Keep browser assets offline. When vendoring a dependency, update
-  `assets/vendor/manifest.json` and the license notices.
+  `assets/browser/manifest.json` and the license notices.
 - Pull requests should explain behavior and risk, mention the tests run, and
   include screenshots for visible viewer changes.
 - Update this site in the same pull request as user-visible behavior changes.

@@ -1,8 +1,8 @@
 kb
 Copyright 2026 Ankur Shrivastava
 
-This product includes separately licensed browser assets under assets/vendor/.
-Their package versions are recorded in assets/vendor/manifest.json; individual
-copyright and license texts are in assets/vendor/licenses/.
+This product includes separately licensed browser assets under assets/browser/.
+Their package versions are recorded in assets/browser/manifest.json; individual
+copyright and license texts are in assets/browser/licenses/.
 
 The Go dependencies Cobra and yaml.v3 retain their own upstream licenses.
