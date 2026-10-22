@@ -81,6 +81,10 @@ Escape to return), Mermaid diagrams, and syntax highlighting for common
 languages. Web links open in a new tab unless
 `render.external_links_new_tab: false`.
 
+Search shows at most 40 results. On narrow screens, the menu button opens the
+sidebar and moves focus to search; Escape closes it and returns focus to the
+button. Offscreen navigation is removed from the keyboard focus order.
+
 ## Excalidraw drawings
 
 Export a PNG from Excalidraw and save it alongside the editable scene. For

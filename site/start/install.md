@@ -1,9 +1,9 @@
 # Install
 
-`kb` is a single static binary with no runtime dependencies. Browser assets
-are embedded, so the binary is all you need.
+`kb` is a single binary with no runtime dependencies. Browser assets are
+embedded, so the binary is all you need.
 
-## With Go
+## With Go (recommended)
 
 Requires Go 1.24 or later.
 
@@ -12,16 +12,24 @@ go install github.com/ankurs/kb/cmd/kb@latest
 kb --help
 ```
 
-The binary is installed to `$(go env GOPATH)/bin`; make sure that directory is
-on your `PATH`.
+The binary is installed to `$(go env GOPATH)/bin`. If `kb` is not found, add
+that directory to your `PATH`, for example in your shell profile:
+
+```sh
+export PATH="$(go env GOPATH)/bin:$PATH"
+```
+
+Run the same `go install` command again to upgrade. To pin a version, replace
+`@latest` with a release tag such as `@v0.1.2`.
 
 ## From a release archive
 
 Each [GitHub release](https://github.com/ankurs/kb/releases) includes archives
-for macOS and Linux on `amd64` and `arm64`, plus a `checksums.txt` file.
+for macOS and Linux on `amd64` and `arm64`, plus a `checksums.txt` file. Use
+this when Go is not installed.
 
 ```sh
-version=v0.1.0          # pick the release you want
+version=v0.1.2          # pick the latest from the releases page
 os=darwin               # or linux
 arch=arm64              # or amd64
 curl -LO "https://github.com/ankurs/kb/releases/download/$version/kb_${version}_${os}_${arch}.tar.gz"
@@ -43,6 +51,7 @@ go build -o kb ./cmd/kb
 ```
 
 `go run ./cmd/kb` also works from the source directory without installing.
+See [Contributing](../contributing.md) for tests and checks.
 
 ## Optional: semantic search
 
@@ -57,4 +66,5 @@ kb doctor
 ```
 
 Run inside a workspace, `kb doctor` prints the workspace root, the config file
-in use, and any optional qmd setup that is missing.
+in use, and any optional qmd setup that is missing. Next, follow the
+[quick start](README.md).

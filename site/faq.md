@@ -49,5 +49,6 @@ running `kb sync`. See the [security model](reference/security.md).
 
 ## Which platforms are supported?
 
-Release archives are built for macOS and Linux on `amd64` and `arm64`. Other
-platforms supported by Go can build from source.
+`go install github.com/ankurs/kb/cmd/kb@latest` works on any platform Go
+supports. Prebuilt release archives are available for macOS and Linux on
+`amd64` and `arm64`. See [Install](start/install.md).

@@ -70,4 +70,4 @@ from disk or send it to someone. See [Publishing and sync](../guides/publishing.
 - Learn the vocabulary in [Core concepts](concepts.md).
 - Tune navigation, outputs, and publishing in the
   [configuration reference](../reference/configuration.md).
-- Explore a finished wiki in the [example workspace](../example.md).
+- Explore a finished wiki in the [example workspace](example.md).
